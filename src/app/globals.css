@@ -1,26 +1,206 @@
+@layer theme, base, mui, components, utilities;
+
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ===== BAUST Institutional Theme ===== */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Primary Colors */
+  --color-primary: #006B3F;
+  --color-primary-light: #00895a;
+  --color-primary-dark: #004d2d;
+  --color-primary-50: #e6f5ee;
+  --color-primary-100: #b3e0cc;
+  --color-primary-200: #80cbaa;
+
+  /* Secondary / Gold */
+  --color-secondary: #FFD700;
+  --color-secondary-light: #FFE44D;
+  --color-secondary-dark: #C9A800;
+
+  /* Accent / Navy Blue */
+  --color-accent: #1B4F72;
+  --color-accent-light: #2471A3;
+  --color-accent-dark: #1F3A60;
+
+  /* Neutrals */
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F8F9FA;
+  --color-surface-hover: #F1F3F5;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-text-primary: #1A202C;
+  --color-text-secondary: #4A5568;
+  --color-text-muted: #A0AEC0;
+
+  /* Urgency Colors */
+  --color-urgent: #DC2626;
+  --color-warning: #F59E0B;
+  --color-success: #16A34A;
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-navbar: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===== Global Base Styles ===== */
+:root {
+  --background: #FFFFFF;
+  --foreground: #1A202C;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ===== Selection ===== */
+::selection {
+  background: var(--color-primary-100);
+  color: var(--color-primary-dark);
+}
+
+/* ===== Category Badge Colors ===== */
+.badge-exam {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.badge-assignment {
+  background: #DBEAFE;
+  color: #1E40AF;
+  border: 1px solid #BFDBFE;
+}
+
+.badge-urgent {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.badge-class_cancelled {
+  background: #F3E8FF;
+  color: #6B21A8;
+  border: 1px solid #E9D5FF;
+}
+
+.badge-general {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
+/* ===== Animation Utilities ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ===== Print Media Styles for Routine Export ===== */
+@media print {
+  /* Hide the navbar, sidebar spacer, buttons, and other non-print elements */
+  nav,
+  header,
+  footer,
+  aside,
+  button,
+  .no-print,
+  .MuiButton-root,
+  .hidden.md\:block {
+    display: none !important;
+  }
+
+  /* Reset body and html backgrounds */
+  body, html {
+    background-color: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Reset Next.js layout wrappers */
+  main {
+    padding-top: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+  }
+
+  main > div {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Unset Material UI Card default styles during print */
+  #timetable-grid-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background-color: white !important;
+  }
+
+  /* Force background colors to print in all browsers */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Set page orientation to landscape */
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
 }
