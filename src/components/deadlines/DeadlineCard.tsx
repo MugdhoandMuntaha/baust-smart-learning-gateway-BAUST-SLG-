@@ -6,7 +6,6 @@ import type { Deadline } from "@/types/deadlines";
 import {
   getUrgencyLevel,
   getTimeRemaining,
-  DEADLINE_CATEGORY_ICONS,
   DEADLINE_CATEGORY_LABELS,
   type UrgencyLevel,
 } from "@/types/deadlines";
@@ -76,7 +75,7 @@ export default function DeadlineCard({ deadline, index }: DeadlineCardProps) {
         {/* Top Row */}
         <div className="flex items-start justify-between mb-3">
           <Chip
-            label={`${DEADLINE_CATEGORY_ICONS[deadline.category]} ${DEADLINE_CATEGORY_LABELS[deadline.category]}`}
+            label={DEADLINE_CATEGORY_LABELS[deadline.category]}
             size="small"
             sx={{
               backgroundColor: "rgba(255,255,255,0.7)",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { motion } from "framer-motion";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -25,7 +25,9 @@ import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import Avatar from "@mui/material/Avatar";
 import BookIcon from "@mui/icons-material/Book";
 
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import type { Document as DocType } from "@/types/documents";
 import { formatFileSize, getFileIcon } from "@/types/documents";
 import FilePreviewModal from "@/components/documents/FilePreviewModal";
@@ -52,7 +54,8 @@ interface Subfolder {
   created_at: string;
 }
 
-export default function DocumentsPage() {
+function DocumentsPageContent() {
+  const { scope, loading: scopeLoading } = useStudentScope();
   const [documents, setDocuments] = useState<DocType[]>([]);
   const [dbCourses, setDbCourses] = useState<Course[]>([]);
   const [subfolders, setSubfolders] = useState<Subfolder[]>([]);
@@ -67,7 +70,11 @@ export default function DocumentsPage() {
   const [sortBy, setSortBy] = useState<string>("date"); // 'name' | 'size' | 'date'
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
+    if (scopeLoading || !scope) return;
+    const s = scope;
     async function fetchData() {
       const supabase = createClient();
       
@@ -82,10 +89,17 @@ export default function DocumentsPage() {
         setDocuments(docData as DocType[]);
       }
 
-      // Load courses
-      const { data: courseData, error: courseError } = await supabase
+      // Load courses (filtered by student scope)
+      let courseQuery = supabase
         .from("courses")
-        .select("*, teachers(full_name, designation, avatar_url)")
+        .select("*, teachers(full_name, designation, avatar_url)");
+      
+      courseQuery = courseQuery
+        .eq("level", s.level)
+        .eq("term", s.term)
+        .eq("section", s.section);
+
+      const { data: courseData, error: courseError } = await courseQuery
         .order("name", { ascending: true });
 
       if (!courseError && courseData) {
@@ -105,7 +119,22 @@ export default function DocumentsPage() {
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [scope, scopeLoading]);
+
+  // Listen to folder query parameter to auto-open a course folder
+  useEffect(() => {
+    const folderParam = searchParams.get("folder");
+    if (folderParam && dbCourses.length > 0) {
+      const matched = dbCourses.find(
+        (c) => c.name.toLowerCase() === folderParam.toLowerCase() || c.code?.toLowerCase() === folderParam.toLowerCase()
+      );
+      if (matched) {
+        setCurrentFolder(matched.name);
+        setInRunningCourses(true);
+        setCurrentSubfolder(null);
+      }
+    }
+  }, [searchParams, dbCourses]);
 
   // Helper to categorize document types
   const getFileTypeCategory = (fileName: string): "pdf" | "ppt" | "doc" | "other" => {
@@ -833,5 +862,17 @@ export default function DocumentsPage() {
         document={previewDoc}
       />
     </motion.div>
+  );
+}
+
+export default function DocumentsPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 8 }}>
+        <CircularProgress color="success" />
+      </Box>
+    }>
+      <DocumentsPageContent />
+    </Suspense>
   );
 }

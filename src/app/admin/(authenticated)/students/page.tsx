@@ -18,6 +18,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 
 interface StudentProfile {
   id: string;
@@ -32,6 +33,7 @@ interface StudentProfile {
 }
 
 export default function AdminStudentsPage() {
+  const { scope, loading: scopeLoading } = useAdminScope();
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -41,20 +43,30 @@ export default function AdminStudentsPage() {
   const supabase = createClient();
 
   const fetchStudents = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("student_profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    if (scopeLoading || !scope) return;
+    setLoading(true);
+    let query = supabase.from("student_profiles").select("*");
+
+    if (!scope.isSuperAdmin) {
+      query = query
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (!error && data) {
       setStudents(data as StudentProfile[]);
     }
     setLoading(false);
-  }, []);
+  }, [supabase, scope, scopeLoading]);
 
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    if (!scopeLoading && scope) {
+      fetchStudents();
+    }
+  }, [fetchStudents, scope, scopeLoading]);
 
   const handleApprove = async (id: string) => {
     setActioningId(id);

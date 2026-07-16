@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS notices (
   content TEXT NOT NULL,
   category TEXT NOT NULL CHECK (category IN ('exam', 'class_cancelled', 'assignment', 'urgent', 'general')),
   is_pinned BOOLEAN DEFAULT false,
+  level TEXT DEFAULT '1',
+  term TEXT DEFAULT 'I',
+  section TEXT DEFAULT 'A',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -31,6 +34,9 @@ CREATE TABLE IF NOT EXISTS routine (
   course_title TEXT NOT NULL,
   teacher_initials TEXT NOT NULL,
   room_number TEXT NOT NULL,
+  level TEXT DEFAULT '1',
+  term TEXT DEFAULT 'I',
+  section TEXT DEFAULT 'A',
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -43,6 +49,9 @@ CREATE TABLE IF NOT EXISTS deadlines (
   description TEXT,
   category TEXT NOT NULL CHECK (category IN ('assignment', 'quiz', 'lab_report', 'project')),
   due_date TIMESTAMPTZ NOT NULL,
+  level TEXT DEFAULT '1',
+  term TEXT DEFAULT 'I',
+  section TEXT DEFAULT 'A',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -131,6 +140,8 @@ CREATE TABLE IF NOT EXISTS courses (
   teacher_avatar_url TEXT,
   level TEXT DEFAULT '1',
   term TEXT DEFAULT 'I',
+  section TEXT DEFAULT 'A',
+  type TEXT DEFAULT 'theory' CHECK (type IN ('theory', 'sessional')),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -339,4 +350,28 @@ CREATE POLICY "Authenticated update for teachers" ON teachers
 
 CREATE POLICY "Authenticated delete for teachers" ON teachers
   FOR DELETE TO authenticated USING (true);
+
+-- =====================================================
+-- Table: admin_profiles
+-- =====================================================
+CREATE TABLE IF NOT EXISTS admin_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  full_name TEXT,
+  level TEXT NOT NULL DEFAULT '1',
+  term TEXT NOT NULL DEFAULT 'I',
+  section TEXT NOT NULL DEFAULT 'A',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE admin_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Public read access for admin_profiles" ON admin_profiles
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow individual updates for admin_profiles" ON admin_profiles
+  FOR ALL TO authenticated USING (true);
 

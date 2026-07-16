@@ -15,6 +15,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 import type { Notice, NoticeCategory } from "@/types/notices";
 import { CATEGORY_LABELS } from "@/types/notices";
 
@@ -34,6 +35,7 @@ const emptyForm = {
 };
 
 export default function AdminNoticesPage() {
+  const { scope, loading: scopeLoading } = useAdminScope();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,17 +45,27 @@ export default function AdminNoticesPage() {
   const supabase = createClient();
 
   const fetchNotices = useCallback(async () => {
-    const { data } = await supabase
-      .from("notices")
-      .select("*")
+    if (scopeLoading || !scope) return;
+    let query = supabase.from("notices").select("*");
+
+    if (!scope.isSuperAdmin) {
+      query = query
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
+    const { data } = await query
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false });
     if (data) setNotices(data as Notice[]);
-  }, []);
+  }, [supabase, scope, scopeLoading]);
 
   useEffect(() => {
-    fetchNotices();
-  }, [fetchNotices]);
+    if (!scopeLoading && scope) {
+      fetchNotices();
+    }
+  }, [fetchNotices, scope, scopeLoading]);
 
   const handleOpenCreate = () => {
     setForm(emptyForm);
@@ -73,13 +85,19 @@ export default function AdminNoticesPage() {
   };
 
   const handleSave = async () => {
+    const payload = {
+      ...form,
+      level: scope?.isSuperAdmin ? "1" : scope?.level || "1",
+      term: scope?.isSuperAdmin ? "I" : scope?.term || "I",
+      section: scope?.isSuperAdmin ? "A" : scope?.section || "A",
+    };
     if (editingId) {
       await supabase
         .from("notices")
-        .update({ ...form, updated_at: new Date().toISOString() })
+        .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", editingId);
     } else {
-      await supabase.from("notices").insert(form);
+      await supabase.from("notices").insert(payload);
     }
     setDialogOpen(false);
     fetchNotices();

@@ -6,6 +6,7 @@ import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
 import Chip from "@mui/material/Chip";
 import DeadlineCard from "@/components/deadlines/DeadlineCard";
 import { createClient } from "@/lib/supabase/client";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import type { Deadline, DeadlineCategory } from "@/types/deadlines";
 import { getUrgencyLevel } from "@/types/deadlines";
 
@@ -18,16 +19,22 @@ const FILTER_OPTIONS: { label: string; value: DeadlineCategory | "all" }[] = [
 ];
 
 export default function DeadlinesPage() {
+  const { scope, loading: scopeLoading } = useStudentScope();
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [filter, setFilter] = useState<DeadlineCategory | "all">("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (scopeLoading || !scope) return;
+    const s = scope;
     async function fetchDeadlines() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("deadlines")
         .select("*")
+        .eq("level", s.level)
+        .eq("term", s.term)
+        .eq("section", s.section)
         .gte("due_date", new Date().toISOString())
         .order("due_date", { ascending: true });
 
@@ -37,7 +44,7 @@ export default function DeadlinesPage() {
       setLoading(false);
     }
     fetchDeadlines();
-  }, []);
+  }, [scope, scopeLoading]);
 
   const filteredDeadlines =
     filter === "all"
@@ -128,7 +135,7 @@ export default function DeadlinesPage() {
         <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
           <TimerOutlinedIcon sx={{ fontSize: 48, color: "#E2E8F0", mb: 2 }} />
           <h3 className="text-base font-semibold text-[#4A5568] mb-1">
-            {filter !== "all" ? "No deadlines in this category" : "All clear! 🎉"}
+            {filter !== "all" ? "No deadlines in this category" : "All clear!"}
           </h3>
           <p className="text-sm text-[#A0AEC0]">
             {filter !== "all"

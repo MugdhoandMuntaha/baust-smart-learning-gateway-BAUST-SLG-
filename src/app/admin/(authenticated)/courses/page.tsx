@@ -15,7 +15,9 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import BookIcon from "@mui/icons-material/Book";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 
 interface Course {
   id: string;
@@ -26,6 +28,7 @@ interface Course {
   teacher_avatar_url: string | null;
   level: string | null;
   term: string | null;
+  type: string | null;
   created_at: string;
   teachers?: Array<{
     full_name: string;
@@ -41,12 +44,14 @@ const emptyForm = {
   teacher_designation: "",
   level: "1",
   term: "I",
+  type: "theory",
 };
 
 const LEVELS = ["1", "2", "3", "4"];
 const TERMS = ["I", "II"];
 
 export default function AdminCoursesPage() {
+  const { scope, loading: scopeLoading } = useAdminScope();
   const [courses, setCourses] = useState<Course[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -61,24 +66,39 @@ export default function AdminCoursesPage() {
   const supabase = createClient();
 
   const fetchCourses = useCallback(async () => {
+    if (scopeLoading || !scope) return;
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("courses")
-      .select("*, teachers(full_name, designation, avatar_url)")
-      .order("name", { ascending: true });
+      .select("*, teachers(full_name, designation, avatar_url)");
+
+    if (!scope.isSuperAdmin) {
+      query = query
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
+    const { data, error } = await query.order("name", { ascending: true });
 
     if (!error && data) {
       setCourses(data as any[]);
     }
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, scope, scopeLoading]);
 
   useEffect(() => {
-    fetchCourses();
-  }, [fetchCourses]);
+    if (!scopeLoading && scope) {
+      fetchCourses();
+    }
+  }, [fetchCourses, scope, scopeLoading]);
 
   const handleOpenCreate = () => {
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      level: scope?.level || "1",
+      term: scope?.term || "I",
+    });
     setAvatarFile(null);
     setAvatarPreview(null);
     setEditingId(null);
@@ -93,6 +113,7 @@ export default function AdminCoursesPage() {
       teacher_designation: c.teacher_designation || "",
       level: c.level || "1",
       term: c.term || "I",
+      type: c.type || "theory",
     });
     setAvatarFile(null);
     setAvatarPreview(c.teacher_avatar_url);
@@ -134,8 +155,10 @@ export default function AdminCoursesPage() {
         teacher_name: form.teacher_name.trim() || null,
         teacher_designation: form.teacher_designation.trim() || null,
         teacher_avatar_url: finalAvatarUrl,
-        level: form.level,
-        term: form.term,
+        level: scope?.isSuperAdmin ? form.level : scope?.level || "1",
+        term: scope?.isSuperAdmin ? form.term : scope?.term || "I",
+        section: scope?.isSuperAdmin ? "A" : scope?.section || "A",
+        type: form.type,
       };
 
       if (editingId) {
@@ -217,7 +240,10 @@ export default function AdminCoursesPage() {
                       avatar: c.teacher_avatar_url 
                     };
                 return (
-                  <div className="flex items-center gap-4 min-w-0">
+                  <Link
+                    href={`/admin/documents?folder=${encodeURIComponent(c.name)}`}
+                    style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "1rem", minWidth: 0, flex: 1, cursor: "pointer" }}
+                  >
                     <Avatar
                       src={displayTeacher.avatar || undefined}
                       sx={{ width: 50, height: 50, bgcolor: "#EBF5FB", color: "#1B4F72", fontWeight: 600 }}
@@ -235,13 +261,20 @@ export default function AdminCoursesPage() {
                         <span className="text-[10px] text-[#718096] bg-slate-100 px-1.5 py-0.5 rounded font-medium">
                           L-{c.level || "1"} T-{c.term || "I"}
                         </span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                          c.type === "sessional" 
+                            ? "bg-amber-50 text-amber-700 border border-amber-200" 
+                            : "bg-blue-50 text-blue-700 border border-blue-200"
+                        }`}>
+                          {c.type === "sessional" ? "Sessional" : "Theory"}
+                        </span>
                       </div>
                       <div className="text-[11px] text-[#4A5568] mt-2">
                         <span className="font-semibold">Instructor:</span> {displayTeacher.name || "—"} 
                         {displayTeacher.designation && ` (${displayTeacher.designation})`}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })()}
               <div className="flex flex-col gap-1 shrink-0">
@@ -318,7 +351,18 @@ export default function AdminCoursesPage() {
             disabled={saving}
             placeholder="e.g. CSE 2201"
           />
-
+          <TextField
+            fullWidth
+            select
+            label="Course Type"
+            value={form.type}
+            onChange={(e) => setForm({ ...form, type: e.target.value })}
+            margin="dense"
+            disabled={saving}
+          >
+            <MenuItem value="theory">Theory Course</MenuItem>
+            <MenuItem value="sessional">Sessional Course</MenuItem>
+          </TextField>
           <div className="grid grid-cols-2 gap-4">
             <TextField
               fullWidth
@@ -327,7 +371,7 @@ export default function AdminCoursesPage() {
               value={form.level}
               onChange={(e) => setForm({ ...form, level: e.target.value })}
               margin="dense"
-              disabled={saving}
+              disabled={saving || !scope?.isSuperAdmin}
             >
               {LEVELS.map((l) => (
                 <MenuItem key={l} value={l}>
@@ -343,7 +387,7 @@ export default function AdminCoursesPage() {
               value={form.term}
               onChange={(e) => setForm({ ...form, term: e.target.value })}
               margin="dense"
-              disabled={saving}
+              disabled={saving || !scope?.isSuperAdmin}
             >
               {TERMS.map((t) => (
                 <MenuItem key={t} value={t}>

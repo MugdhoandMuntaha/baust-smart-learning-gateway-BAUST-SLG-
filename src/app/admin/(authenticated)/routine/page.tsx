@@ -16,6 +16,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 import type { ClassSlot, DayOfWeek, WeeklyRoutine } from "@/types/routine";
 import { DAYS } from "@/types/routine";
 
@@ -86,18 +87,18 @@ function endTimeToIdx(time: string): number {
 }
 
 export default function AdminRoutinePage() {
+  const { scope, loading: scopeLoading } = useAdminScope();
   const [slots, setSlots] = useState<ClassSlot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-
   const [settings, setSettings] = useState<PortalSettings>({
     university_name: "Bangladesh Army University of Science and Technology (BAUST), Saidpur",
     department_name: "Department of Computer Science and Engineering (CSE)",
-    section_name: "C",
-    batch_no: "2-II",
+    section_name: "A",
+    batch_no: "L-1 T-I",
     batch_advisor: "Md. Zahim Hassan",
     dpc_name: "Md. Zahim Hassan",
     dpc_phone: "01736393334",
@@ -107,41 +108,65 @@ export default function AdminRoutinePage() {
   const supabase = createClient();
 
   const fetchSettingsAndSlots = useCallback(async () => {
+    if (scopeLoading || !scope) return;
+    setLoading(true);
+
     // 1. Fetch settings
+    const settingsId = scope.isSuperAdmin ? "settings" : `settings_${scope.level}_${scope.term}_${scope.section}`;
     const { data: settingsData } = await supabase
       .from("portal_settings")
       .select("*")
-      .eq("id", "settings")
-      .single();
+      .eq("id", settingsId)
+      .maybeSingle();
 
     if (settingsData) {
       setSettings({
         university_name: settingsData.university_name || "Bangladesh Army University of Science and Technology (BAUST), Saidpur",
         department_name: settingsData.department_name || "Department of Computer Science and Engineering (CSE)",
-        section_name: settingsData.section_name || "C",
-        batch_no: settingsData.batch_no || "2-II",
+        section_name: settingsData.section_name || scope.section,
+        batch_no: settingsData.batch_no || `L-${scope.level} T-${scope.term}`,
         batch_advisor: settingsData.batch_advisor || "Md. Zahim Hassan",
         dpc_name: settingsData.dpc_name || "Md. Zahim Hassan",
         dpc_phone: settingsData.dpc_phone || "01736393334",
         logo_url: settingsData.logo_url || null,
       });
+    } else {
+      // Default placeholder if settings do not exist yet
+      setSettings({
+        university_name: "Bangladesh Army University of Science and Technology (BAUST), Saidpur",
+        department_name: "Department of Computer Science and Engineering (CSE)",
+        section_name: scope.section,
+        batch_no: `L-${scope.level} T-${scope.term}`,
+        batch_advisor: "Md. Zahim Hassan",
+        dpc_name: "Md. Zahim Hassan",
+        dpc_phone: "01736393334",
+        logo_url: null,
+      });
     }
 
     // 2. Fetch routine slots
-    const { data: slotsData } = await supabase
-      .from("routine")
-      .select("*")
+    let query = supabase.from("routine").select("*");
+    if (!scope.isSuperAdmin) {
+      query = query
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
+    const { data: slotsData } = await query
       .order("start_time", { ascending: true });
 
     if (slotsData) {
       setSlots(slotsData as ClassSlot[]);
     }
     setLoading(false);
-  }, []);
+  }, [supabase, scope, scopeLoading]);
 
   useEffect(() => {
-    fetchSettingsAndSlots();
-  }, [fetchSettingsAndSlots]);
+    if (!scopeLoading && scope) {
+      fetchSettingsAndSlots();
+    }
+  }, [fetchSettingsAndSlots, scope, scopeLoading]);
 
   const handleOpenCreate = () => {
     setForm(emptyForm);
@@ -179,10 +204,16 @@ export default function AdminRoutinePage() {
   };
 
   const handleSave = async () => {
+    const payload = {
+      ...form,
+      level: scope?.isSuperAdmin ? "1" : scope?.level || "1",
+      term: scope?.isSuperAdmin ? "I" : scope?.term || "I",
+      section: scope?.isSuperAdmin ? "A" : scope?.section || "A",
+    };
     if (editingId) {
-      await supabase.from("routine").update(form).eq("id", editingId);
+      await supabase.from("routine").update(payload).eq("id", editingId);
     } else {
-      await supabase.from("routine").insert(form);
+      await supabase.from("routine").insert(payload);
     }
     setDialogOpen(false);
     fetchSettingsAndSlots();
@@ -322,6 +353,7 @@ export default function AdminRoutinePage() {
             <div style={{ display: "flex", gap: 12 }}>
               <span style={{ minWidth: 100 }}>DPC/G2:</span>
               <span>{settings.dpc_name}</span>
+              <span>Phone no: </span>
               <span style={{ marginLeft: "auto", fontWeight: 500 }}>{settings.dpc_phone}</span>
             </div>
           </Box>

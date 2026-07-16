@@ -204,3 +204,25 @@ body {
     margin: 10mm;
   }
 }
+
+/* ===== MUI Input Padding Restoration (Overrides Tailwind v4 Preflight) ===== */
+.MuiInputBase-root .MuiInputBase-input {
+  height: 48px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 48px !important;
+  box-sizing: border-box !important;
+}
+
+.MuiInputLabel-outlined:not(.MuiInputLabel-shrink) {
+  transform: translate(14px, 12px) scale(1) !important;
+}
+
+.MuiInputBase-root.MuiInputBase-sizeSmall .MuiInputBase-input {
+  height: 40px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 40px !important;
+}
+
+

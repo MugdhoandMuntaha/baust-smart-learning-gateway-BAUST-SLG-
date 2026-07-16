@@ -209,7 +209,8 @@ export default function TimetableGrid({ routine }: TimetableGridProps) {
           <div style={{ display: "flex", gap: 12 }}>
             <span style={{ minWidth: 100 }}>DPC/G2:</span>
             <span>{settings.dpc_name}</span>
-            <span style={{ marginLeft: "auto", fontWeight: 500 }}>{settings.dpc_phone}</span>
+            <span style={{ marginLeft: "auto", fontWeight: 500, marginRight: "20px" }}>Phone No: </span>
+            <span >{settings.dpc_phone}</span>
           </div>
         </Box>
       </Box>

@@ -13,6 +13,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 
 interface Course {
   id: string;
@@ -49,6 +50,7 @@ const emptyForm = {
 };
 
 export default function AdminTemplatesPage() {
+  const { scope, loading: scopeLoading } = useAdminScope();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,23 +62,42 @@ export default function AdminTemplatesPage() {
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
+    if (scopeLoading || !scope) return;
     setLoading(true);
+
+    let templatesQuery = supabase
+      .from("generator_templates")
+      .select("*, courses!inner(id, name, code, teacher_name, teacher_designation, level, term, section)");
+
+    let coursesQuery = supabase.from("courses").select("*");
+
+    if (!scope.isSuperAdmin) {
+      templatesQuery = templatesQuery
+        .eq("courses.level", scope.level)
+        .eq("courses.term", scope.term)
+        .eq("courses.section", scope.section);
+
+      coursesQuery = coursesQuery
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
     const [templatesRes, coursesRes] = await Promise.all([
-      supabase
-        .from("generator_templates")
-        .select("*, courses(id, name, code, teacher_name, teacher_designation)")
-        .order("created_at", { ascending: false }),
-      supabase.from("courses").select("*").order("name"),
+      templatesQuery.order("created_at", { ascending: false }),
+      coursesQuery.order("name"),
     ]);
-    if (templatesRes.data) setTemplates(templatesRes.data as Template[]);
+
+    if (templatesRes.data) setTemplates(templatesRes.data as any[]);
     if (coursesRes.data) setCourses(coursesRes.data as Course[]);
     setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [supabase, scope, scopeLoading]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!scopeLoading && scope) {
+      fetchData();
+    }
+  }, [fetchData, scope, scopeLoading]);
 
   const handleOpenCreate = () => {
     setForm(emptyForm);
@@ -187,11 +208,10 @@ export default function AdminTemplatesPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                      t.type === "lab_report"
+                    className={`text-xs font-semibold px-2 py-0.5 rounded ${t.type === "lab_report"
                         ? "text-[#1B4F72] bg-[#EBF5FB]"
                         : "text-[#7B341E] bg-[#FEFCBF]"
-                    }`}
+                      }`}
                   >
                     {t.type === "lab_report" ? "Lab Report" : "Assignment"}
                   </span>

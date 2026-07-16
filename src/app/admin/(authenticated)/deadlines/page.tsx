@@ -13,6 +13,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 import type { Deadline, DeadlineCategory } from "@/types/deadlines";
 import { DEADLINE_CATEGORY_LABELS, getTimeRemaining } from "@/types/deadlines";
 
@@ -31,6 +32,7 @@ const emptyForm = {
 };
 
 export default function AdminDeadlinesPage() {
+  const { scope, loading: scopeLoading } = useAdminScope();
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -40,16 +42,25 @@ export default function AdminDeadlinesPage() {
   const supabase = createClient();
 
   const fetchDeadlines = useCallback(async () => {
-    const { data } = await supabase
-      .from("deadlines")
-      .select("*")
-      .order("due_date", { ascending: true });
+    if (scopeLoading || !scope) return;
+    let query = supabase.from("deadlines").select("*");
+
+    if (!scope.isSuperAdmin) {
+      query = query
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
+    const { data } = await query.order("due_date", { ascending: true });
     if (data) setDeadlines(data as Deadline[]);
-  }, []);
+  }, [supabase, scope, scopeLoading]);
 
   useEffect(() => {
-    fetchDeadlines();
-  }, [fetchDeadlines]);
+    if (!scopeLoading && scope) {
+      fetchDeadlines();
+    }
+  }, [fetchDeadlines, scope, scopeLoading]);
 
   const handleOpenCreate = () => {
     setForm(emptyForm);
@@ -74,6 +85,9 @@ export default function AdminDeadlinesPage() {
       description: form.description || null,
       category: form.category,
       due_date: new Date(form.due_date).toISOString(),
+      level: scope?.isSuperAdmin ? "1" : scope?.level || "1",
+      term: scope?.isSuperAdmin ? "I" : scope?.term || "I",
+      section: scope?.isSuperAdmin ? "A" : scope?.section || "A",
     };
     if (editingId) {
       await supabase

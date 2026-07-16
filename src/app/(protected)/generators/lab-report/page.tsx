@@ -119,6 +119,63 @@ export default function GeneratorPage() {
     loadData();
   }, []);
 
+  // Pre-fill form from query param templateId & trigger auto-download if requested
+  useEffect(() => {
+    if (templates.length > 0 && dbTeachers.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const templateId = urlParams.get("templateId");
+      if (templateId) {
+        const t = templates.find((temp) => temp.id === templateId);
+        if (t) {
+          const course = Array.isArray(t.courses) ? t.courses[0] : t.courses;
+          const courseTeachers = course
+            ? dbTeachers.filter((teacher) => teacher.course_id === (course as any).id)
+            : [];
+
+          setForm((prev) => ({
+            ...prev,
+            courseTitle: course?.name || "",
+            courseNo: course?.code || "",
+            experimentNo: t.no,
+            experimentName: t.title,
+            experimentDate: t.experiment_date || "",
+            submissionDate: t.submission_date || "",
+            teachers: courseTeachers.length > 0
+              ? courseTeachers.map((ct) => ({ name: ct.full_name, designation: ct.designation }))
+              : (course?.teacher_name
+                ? [{ name: course.teacher_name, designation: course.teacher_designation || "" }]
+                : prev.teachers),
+          }));
+
+          const autoDownload = urlParams.get("autoDownload");
+          if (autoDownload === "true") {
+            setTimeout(() => {
+              if (previewRef.current) {
+                // Fetch dynamic import helper to download PDF directly
+                import("./download").then(({ downloadPDF }) => {
+                  downloadPDF(previewRef.current!, {
+                    ...form,
+                    courseTitle: course?.name || "",
+                    courseNo: course?.code || "",
+                    experimentNo: t.no,
+                    experimentName: t.title,
+                    experimentDate: t.experiment_date || "",
+                    submissionDate: t.submission_date || "",
+                    teachers: courseTeachers.length > 0
+                      ? courseTeachers.map((ct) => ({ name: ct.full_name, designation: ct.designation }))
+                      : (course?.teacher_name
+                        ? [{ name: course.teacher_name, designation: course.teacher_designation || "" }]
+                        : form.teachers),
+                  }).catch(console.error);
+                });
+              }
+            }, 800);
+          }
+        }
+      }
+    }
+  }, [templates, dbTeachers]);
+
   const update = useCallback(
     (field: keyof Omit<FormData, "teachers">, value: string) => {
       setForm((prev) => ({ ...prev, [field]: value }));

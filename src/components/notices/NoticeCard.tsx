@@ -27,14 +27,6 @@ const CATEGORY_LABEL_MAP: Record<NoticeCategory, string> = {
   general: "General",
 };
 
-const CATEGORY_ICON_MAP: Record<NoticeCategory, string> = {
-  exam: "📝",
-  class_cancelled: "🚫",
-  assignment: "📋",
-  urgent: "🚨",
-  general: "📢",
-};
-
 export default function NoticeCard({ notice, index }: NoticeCardProps) {
   const colors = CATEGORY_COLORS[notice.category];
   const formattedDate = new Date(notice.created_at).toLocaleDateString("en-US", {
@@ -80,7 +72,7 @@ export default function NoticeCard({ notice, index }: NoticeCardProps) {
       {/* Category Badge */}
       <div className="flex items-center gap-2 mb-3">
         <Chip
-          label={`${CATEGORY_ICON_MAP[notice.category]} ${CATEGORY_LABEL_MAP[notice.category]}`}
+          label={CATEGORY_LABEL_MAP[notice.category]}
           size="small"
           sx={{
             backgroundColor: colors.bg,

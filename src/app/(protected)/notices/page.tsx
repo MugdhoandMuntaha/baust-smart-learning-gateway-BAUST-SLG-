@@ -6,28 +6,35 @@ import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import Chip from "@mui/material/Chip";
 import NoticeCard from "@/components/notices/NoticeCard";
 import { createClient } from "@/lib/supabase/client";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import type { Notice, NoticeCategory } from "@/types/notices";
 
 const FILTER_OPTIONS: { label: string; value: NoticeCategory | "all" }[] = [
   { label: "All", value: "all" },
-  { label: "📝 Exam", value: "exam" },
-  { label: "📋 Assignment", value: "assignment" },
-  { label: "🚨 Urgent", value: "urgent" },
-  { label: "🚫 Cancelled", value: "class_cancelled" },
-  { label: "📢 General", value: "general" },
+  { label: "Exam", value: "exam" },
+  { label: "Assignment", value: "assignment" },
+  { label: "Urgent", value: "urgent" },
+  { label: "Cancelled", value: "class_cancelled" },
+  { label: "General", value: "general" },
 ];
 
 export default function NoticesPage() {
+  const { scope, loading: scopeLoading } = useStudentScope();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [filter, setFilter] = useState<NoticeCategory | "all">("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (scopeLoading || !scope) return;
+    const s = scope;
     async function fetchNotices() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("notices")
         .select("*")
+        .eq("level", s.level)
+        .eq("term", s.term)
+        .eq("section", s.section)
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -37,7 +44,7 @@ export default function NoticesPage() {
       setLoading(false);
     }
     fetchNotices();
-  }, []);
+  }, [scope, scopeLoading]);
 
   const filteredNotices =
     filter === "all"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Dialog from "@mui/material/Dialog";
@@ -30,11 +30,14 @@ import FolderIcon from "@mui/icons-material/Folder";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import Avatar from "@mui/material/Avatar";
 import BookIcon from "@mui/icons-material/Book";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 import type { Document as DocType } from "@/types/documents";
 import { formatFileSize, getFileIcon } from "@/types/documents";
 import FilePreviewModal from "@/components/documents/FilePreviewModal";
@@ -60,7 +63,7 @@ interface Subfolder {
   created_at: string;
 }
 
-export default function AdminDocumentsPage() {
+function AdminDocumentsPageContent() {
   const [documents, setDocuments] = useState<DocType[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [subfolders, setSubfolders] = useState<Subfolder[]>([]);
@@ -113,12 +116,22 @@ export default function AdminDocumentsPage() {
 
   const supabase = createClient();
 
+  const { scope, loading: scopeLoading } = useAdminScope();
+
   const fetchCourses = useCallback(async () => {
-    // Attempt to fetch from the `courses` database table
-    const { data, error } = await supabase
+    if (scopeLoading || !scope) return;
+    let query = supabase
       .from("courses")
-      .select("*, teachers(full_name, designation, avatar_url)")
-      .order("name", { ascending: true });
+      .select("*, teachers(full_name, designation, avatar_url)");
+
+    if (!scope.isSuperAdmin) {
+      query = query
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
+    const { data, error } = await query.order("name", { ascending: true });
 
     if (!error && data) {
       setCourses(data as any[]);
@@ -126,7 +139,7 @@ export default function AdminDocumentsPage() {
       // Fallback: If table is not created yet, populate empty array
       setCourses([]);
     }
-  }, []);
+  }, [supabase, scope, scopeLoading]);
 
   const fetchSubfolders = useCallback(async () => {
     const { data, error } = await supabase
@@ -149,6 +162,8 @@ export default function AdminDocumentsPage() {
     if (data) setDocuments(data as DocType[]);
   }, []);
 
+  const searchParams = useSearchParams();
+
   const loadData = useCallback(async () => {
     setLoading(true);
     await Promise.all([fetchCourses(), fetchSubfolders(), fetchDocuments()]);
@@ -156,8 +171,26 @@ export default function AdminDocumentsPage() {
   }, [fetchCourses, fetchSubfolders, fetchDocuments]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!scopeLoading && scope) {
+      loadData();
+    }
+  }, [loadData, scope, scopeLoading]);
+
+  // Listen to folder query parameter to auto-open a course folder
+  useEffect(() => {
+    const folderParam = searchParams.get("folder");
+    if (folderParam && courses.length > 0) {
+      const matched = courses.find(
+        (c) => c.name.toLowerCase() === folderParam.toLowerCase() || c.code?.toLowerCase() === folderParam.toLowerCase()
+      );
+      if (matched) {
+        setCurrentFolder(matched.name);
+        setSelectedCourse(matched.name);
+        setInRunningCourses(true);
+        setCurrentSubfolder(null);
+      }
+    }
+  }, [searchParams, courses]);
 
   // Derive unique courses from documents database (as local fallbacks or extra protection)
   const derivedCourseNames = [...new Set(documents.map((d) => d.course_name))];
@@ -1766,5 +1799,17 @@ export default function AdminDocumentsPage() {
         document={previewDoc}
       />
     </div>
+  );
+}
+
+export default function AdminDocumentsPage() {
+  return (
+    <Suspense fallback={
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 8 }}>
+        <CircularProgress color="success" />
+      </Box>
+    }>
+      <AdminDocumentsPageContent />
+    </Suspense>
   );
 }

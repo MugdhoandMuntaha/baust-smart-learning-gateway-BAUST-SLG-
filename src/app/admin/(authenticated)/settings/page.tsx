@@ -26,6 +26,7 @@ import AddIcon from "@mui/icons-material/Add";
 import BookIcon from "@mui/icons-material/Book";
 
 import { createClient } from "@/lib/supabase/client";
+import { useAdminScope } from "@/hooks/useAdminScope";
 
 interface PortalSettings {
   university_name: string;
@@ -39,6 +40,7 @@ interface PortalSettings {
 }
 
 export default function AdminSettingsPage() {
+  const { scope, loading: scopeLoading } = useAdminScope();
   const [settings, setSettings] = useState<PortalSettings>({
     university_name: "Bangladesh Army University of Science & Technology",
     department_name: "CSE",
@@ -86,11 +88,20 @@ export default function AdminSettingsPage() {
   const supabase = createClient();
 
   const fetchCourses = async () => {
+    if (scopeLoading || !scope) return;
     setCoursesLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("courses")
-      .select("*, teachers(full_name, designation, avatar_url)")
-      .order("name", { ascending: true });
+      .select("*, teachers(full_name, designation, avatar_url)");
+
+    if (!scope.isSuperAdmin) {
+      query = query
+        .eq("level", scope.level)
+        .eq("term", scope.term)
+        .eq("section", scope.section);
+    }
+
+    const { data, error } = await query.order("name", { ascending: true });
     if (!error && data) {
       setCourses(data as any[]);
     }
@@ -155,6 +166,9 @@ export default function AdminSettingsPage() {
         teacher_name: teacherName.trim(),
         teacher_designation: teacherDesignation.trim(),
         teacher_avatar_url: finalAvatarUrl,
+        level: scope?.isSuperAdmin ? "1" : scope?.level || "1",
+        term: scope?.isSuperAdmin ? "I" : scope?.term || "I",
+        section: scope?.isSuperAdmin ? "A" : scope?.section || "A",
       };
 
       if (editingCourse) {
@@ -197,41 +211,58 @@ export default function AdminSettingsPage() {
   };
 
   const loadSettings = async () => {
+    if (scopeLoading || !scope) return;
+    const settingsId = scope.isSuperAdmin ? "settings" : `settings_${scope.level}_${scope.term}_${scope.section}`;
     const { data, error } = await supabase
       .from("portal_settings")
       .select("*")
-      .eq("id", "settings")
-      .single();
+      .eq("id", settingsId)
+      .maybeSingle();
 
     if (!error && data) {
       setSettings({
         university_name: data.university_name || "Bangladesh Army University of Science & Technology",
         department_name: data.department_name || "CSE",
-        section_name: data.section_name || "Section A",
-        batch_no: data.batch_no || "Batch 19",
+        section_name: data.section_name || scope.section,
+        batch_no: data.batch_no || `L-${scope.level} T-${scope.term}`,
         batch_advisor: data.batch_advisor || "Md. Zahim Hassan",
         dpc_name: data.dpc_name || "Md. Zahim Hassan",
         dpc_phone: data.dpc_phone || "01736393334",
         logo_url: data.logo_url || null,
+      });
+    } else {
+      // Default placeholder if settings do not exist yet
+      setSettings({
+        university_name: "Bangladesh Army University of Science & Technology",
+        department_name: "CSE",
+        section_name: scope.section,
+        batch_no: `L-${scope.level} T-${scope.term}`,
+        batch_advisor: "Md. Zahim Hassan",
+        dpc_name: "Md. Zahim Hassan",
+        dpc_phone: "01736393334",
+        logo_url: null,
       });
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    loadSettings();
-    fetchCourses();
-  }, []);
+    if (!scopeLoading && scope) {
+      loadSettings();
+      fetchCourses();
+    }
+  }, [scope, scopeLoading]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
 
+    const settingsId = scope?.isSuperAdmin ? "settings" : `settings_${scope?.level}_${scope?.term}_${scope?.section}`;
     const { error } = await supabase
       .from("portal_settings")
       .upsert({
-        id: "settings",
+        id: settingsId,
         university_name: settings.university_name.trim(),
         department_name: settings.department_name.trim(),
         section_name: settings.section_name.trim(),

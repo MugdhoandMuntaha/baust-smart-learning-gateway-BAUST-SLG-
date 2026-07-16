@@ -9,12 +9,14 @@ import DownloadIcon from "@mui/icons-material/Download";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import TimetableGrid from "@/components/routine/TimetableGrid";
 import { createClient } from "@/lib/supabase/client";
+import { useStudentScope } from "@/hooks/useStudentScope";
 import type { ClassSlot, DayOfWeek, WeeklyRoutine } from "@/types/routine";
 import { DAYS } from "@/types/routine";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 export default function RoutinePage() {
+  const { scope, loading: scopeLoading } = useStudentScope();
   const [routine, setRoutine] = useState<WeeklyRoutine>({
     sunday: [],
     monday: [],
@@ -26,11 +28,16 @@ export default function RoutinePage() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
+    if (scopeLoading || !scope) return;
+    const s = scope;
     async function fetchRoutine() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("routine")
         .select("*")
+        .eq("level", s.level)
+        .eq("term", s.term)
+        .eq("section", s.section)
         .order("start_time", { ascending: true });
 
       if (!error && data) {
@@ -53,7 +60,7 @@ export default function RoutinePage() {
       setLoading(false);
     }
     fetchRoutine();
-  }, []);
+  }, [scope, scopeLoading]);
 
   const handleDownloadPDF = async () => {
     const element = document.getElementById("timetable-grid-card");
