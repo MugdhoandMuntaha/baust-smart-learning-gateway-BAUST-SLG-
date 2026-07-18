@@ -31,7 +31,7 @@ export default function ProtectedLayout({
             paddingTop: NAVBAR_HEIGHT,
           }}
         >
-          <div style={{ padding: "24px 32px", maxWidth: 1152 }}>
+          <div className="px-4 py-6 md:px-8 md:py-8" style={{ maxWidth: 1152 }}>
             {children}
           </div>
         </main>

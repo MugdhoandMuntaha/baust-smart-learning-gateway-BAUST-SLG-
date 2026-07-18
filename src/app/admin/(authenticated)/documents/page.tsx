@@ -34,6 +34,10 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Avatar from "@mui/material/Avatar";
 import BookIcon from "@mui/icons-material/Book";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import Checkbox from "@mui/material/Checkbox";
+import GridViewIcon from "@mui/icons-material/GridView";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import ExplorerItem from "@/components/documents/ExplorerItem";
 
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -41,6 +45,7 @@ import { useAdminScope } from "@/hooks/useAdminScope";
 import type { Document as DocType } from "@/types/documents";
 import { formatFileSize, getFileIcon } from "@/types/documents";
 import FilePreviewModal from "@/components/documents/FilePreviewModal";
+import ZipDownloadButton from "@/components/documents/ZipDownloadButton";
 
 interface Course {
   id: string;
@@ -61,6 +66,7 @@ interface Subfolder {
   name: string;
   course_id: string;
   created_at: string;
+  parent_id?: string | null;
 }
 
 function AdminDocumentsPageContent() {
@@ -105,14 +111,20 @@ function AdminDocumentsPageContent() {
   const courseTeacherFileInputRef = useRef<HTMLInputElement>(null);
   const editTeacherFileInputRef = useRef<HTMLInputElement>(null);
 
-  // File Explorer directory states
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-  const [inRunningCourses, setInRunningCourses] = useState(false);
-  const [currentSubfolder, setCurrentSubfolder] = useState<Subfolder | null>(null);
+  const [inRunningCourses, setInRunningCourses] = useState(true);
+  const [subfolderPath, setSubfolderPath] = useState<Subfolder[]>([]);
+  const currentSubfolder = subfolderPath.length > 0 ? subfolderPath[subfolderPath.length - 1] : null;
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date"); // 'name' | 'size' | 'date'
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    setSelectedDocIds([]);
+  }, [currentFolder, subfolderPath]);
 
   const supabase = createClient();
 
@@ -141,7 +153,7 @@ function AdminDocumentsPageContent() {
     }
   }, [supabase, scope, scopeLoading]);
 
-  const fetchSubfolders = useCallback(async () => {
+  const fetchFolders = useCallback(async () => {
     const { data, error } = await supabase
       .from("subfolders")
       .select("*")
@@ -166,9 +178,9 @@ function AdminDocumentsPageContent() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    await Promise.all([fetchCourses(), fetchSubfolders(), fetchDocuments()]);
+    await Promise.all([fetchCourses(), fetchFolders(), fetchDocuments()]);
     setLoading(false);
-  }, [fetchCourses, fetchSubfolders, fetchDocuments]);
+  }, [fetchCourses, fetchFolders, fetchDocuments]);
 
   useEffect(() => {
     if (!scopeLoading && scope) {
@@ -187,7 +199,7 @@ function AdminDocumentsPageContent() {
         setCurrentFolder(matched.name);
         setSelectedCourse(matched.name);
         setInRunningCourses(true);
-        setCurrentSubfolder(null);
+        setSubfolderPath([]);
       }
     }
   }, [searchParams, courses]);
@@ -358,30 +370,31 @@ function AdminDocumentsPageContent() {
       const { error } = await supabase.from("subfolders").insert({
         name: newSubfolderName.trim(),
         course_id: parentCourse.id,
+        parent_id: currentSubfolder ? currentSubfolder.id : null,
       });
 
       if (error) throw error;
 
       setNewSubfolderName("");
       setSubfolderDialogOpen(false);
-      fetchSubfolders();
+      fetchFolders();
     } catch (err: any) {
-      alert(`Error creating subfolder: ${err.message || err}`);
+      alert(`Error creating Folder: ${err.message || err}`);
     } finally {
       setSavingSubfolder(false);
     }
   };
 
   const handleDeleteSubfolder = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the subfolder "${name}"? This will delete all files inside it.`)) {
+    if (!confirm(`Are you sure you want to delete the Folder "${name}"? This will delete all files inside it.`)) {
       return;
     }
     const { error } = await supabase.from("subfolders").delete().eq("id", id);
     if (!error) {
-      fetchSubfolders();
+      fetchFolders();
       fetchDocuments();
     } else {
-      alert(`Error deleting subfolder: ${error.message}`);
+      alert(`Error deleting Folder: ${error.message}`);
     }
   };
 
@@ -488,13 +501,13 @@ function AdminDocumentsPageContent() {
     fetchDocuments();
   };
 
-  // Filtered and sorted documents inside current folder/subfolder
+  // Filtered and sorted documents inside current folder/Folder
   const currentFolderDocs = documents
     .filter((doc) => {
       if (currentFolder === null) return false;
       const matchesFolder = doc.course_name === currentFolder;
 
-      // If inside a subfolder, match subfolder_id. Else, show only direct folder files (no subfolder).
+      // If inside a Subfolder, match subfolder_id. Else, show only direct folder files (no Subfolder).
       const matchesSubfolder = currentSubfolder
         ? doc.subfolder_id === currentSubfolder.id
         : !doc.subfolder_id;
@@ -577,6 +590,42 @@ function AdminDocumentsPageContent() {
 
         {/* Sorting Controls */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          {/* Layout Toggle */}
+          <IconButton
+            size="small"
+            onClick={() => setViewMode("grid")}
+            sx={{
+              border: "1px solid #CBD5E1",
+              borderRadius: 1.5,
+              backgroundColor: viewMode === "grid" ? "rgba(0, 107, 63, 0.08)" : "#FFFFFF",
+              borderColor: viewMode === "grid" ? "#006B3F" : "#CBD5E1",
+              color: viewMode === "grid" ? "#006B3F" : "#718096",
+              p: 0.5,
+              "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
+            }}
+            title="Grid View"
+          >
+            <GridViewIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => setViewMode("list")}
+            sx={{
+              border: "1px solid #CBD5E1",
+              borderRadius: 1.5,
+              backgroundColor: viewMode === "list" ? "rgba(0, 107, 63, 0.08)" : "#FFFFFF",
+              borderColor: viewMode === "list" ? "#006B3F" : "#CBD5E1",
+              color: viewMode === "list" ? "#006B3F" : "#718096",
+              p: 0.5,
+              "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
+            }}
+            title="List View"
+          >
+            <FormatListBulletedIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+
+          <Box sx={{ width: "1px", height: 20, backgroundColor: "#E2E8F0", mx: 0.5 }} />
+
           <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5568" }}>Sort by:</span>
           <Select
             value={sortBy}
@@ -621,9 +670,12 @@ function AdminDocumentsPageContent() {
   // Find active course object
   const activeCourseObj = courses.find((c) => c.name === currentFolder);
 
-  // Subfolders belonging to the current course folder
-  const activeSubfolders = currentFolder && activeCourseObj
-    ? subfolders.filter((sf) => sf.course_id === activeCourseObj.id)
+  // subfolders belonging to the current course folder
+  const activeFolders = currentFolder && activeCourseObj
+    ? subfolders.filter((sf) =>
+      sf.course_id === activeCourseObj.id &&
+      (currentSubfolder ? sf.parent_id === currentSubfolder.id : !sf.parent_id)
+    )
     : [];
 
   return (
@@ -665,8 +717,8 @@ function AdminDocumentsPageContent() {
             {currentSubfolder
               ? `Upload to "${currentSubfolder.name}"`
               : currentFolder
-                ? "Upload to Folder Root"
-                : "Open a Folder to Upload"}
+                ? "Upload to Course Root"
+                : "Open a Course to Upload"}
           </Button>
         </Box>
       </Box>
@@ -703,7 +755,7 @@ function AdminDocumentsPageContent() {
               onClick={() => {
                 setInRunningCourses(false);
                 setCurrentFolder(null);
-                setCurrentSubfolder(null);
+                setSubfolderPath([]);
                 setSearchQuery("");
               }}
               style={{ cursor: "pointer", color: inRunningCourses ? "#006B3F" : "#1A202C", display: "flex", alignItems: "center", gap: 4 }}
@@ -716,7 +768,7 @@ function AdminDocumentsPageContent() {
                 <span
                   onClick={() => {
                     setCurrentFolder(null);
-                    setCurrentSubfolder(null);
+                    setSubfolderPath([]);
                     setSearchQuery("");
                   }}
                   style={{ cursor: "pointer", color: currentFolder ? "#006B3F" : "#1A202C" }}
@@ -730,23 +782,33 @@ function AdminDocumentsPageContent() {
                 <span style={{ color: "#CBD5E1" }}>/</span>
                 <span
                   onClick={() => {
-                    setCurrentSubfolder(null);
+                    setSubfolderPath([]);
                     setSearchQuery("");
                   }}
-                  style={{ cursor: "pointer", color: currentSubfolder ? "#006B3F" : "#1A202C" }}
+                  style={{ cursor: "pointer", color: subfolderPath.length > 0 ? "#006B3F" : "#1A202C" }}
                 >
                   {currentFolder}
                 </span>
               </>
             )}
-            {currentSubfolder && (
-              <>
+            {subfolderPath.map((sf, idx) => (
+              <React.Fragment key={sf.id}>
                 <span style={{ color: "#CBD5E1" }}>/</span>
-                <span style={{ color: "#1A202C", fontWeight: 700 }}>
-                  {currentSubfolder.name}
+                <span
+                  onClick={() => {
+                    setSubfolderPath(subfolderPath.slice(0, idx + 1));
+                    setSearchQuery("");
+                  }}
+                  style={{
+                    cursor: "pointer",
+                    color: idx === subfolderPath.length - 1 ? "#1A202C" : "#006B3F",
+                    fontWeight: idx === subfolderPath.length - 1 ? 700 : "normal"
+                  }}
+                >
+                  {sf.name}
                 </span>
-              </>
-            )}
+              </React.Fragment>
+            ))}
           </Box>
 
           {/* Toolbar Right-side Action */}
@@ -774,7 +836,7 @@ function AdminDocumentsPageContent() {
           ) : (
             <TextField
               size="small"
-              placeholder={currentSubfolder ? "Search files in subfolder..." : "Search files in this folder..."}
+              placeholder={currentFolder ? "Search files in Folder..." : "Search files in this folder..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               slotProps={{
@@ -817,12 +879,12 @@ function AdminDocumentsPageContent() {
 
         {/* Explorer Body */}
         <Box sx={{ flexGrow: 1, p: 3, backgroundColor: "#FFFFFF" }}>
-          {/* LEVEL 1: Course Folders (Root or inside Running Courses) */}
+          {/* LEVEL 1: Course subfolders (Root or inside Running Courses) */}
           {currentFolder === null ? (
             !inRunningCourses ? (
               <Box>
                 <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                  Folders (1)
+                  subfolders (1)
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20 }}>
                   <div
@@ -855,7 +917,7 @@ function AdminDocumentsPageContent() {
             ) : (
               <Box>
                 <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, marginBottom: 16, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                  Course Folders ({courses.length})
+                  Course subfolders ({courses.length})
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 20 }}>
@@ -960,7 +1022,7 @@ function AdminDocumentsPageContent() {
                     );
                   })}
 
-                  {/* Create Folder Card */}
+                  {/* Create Subfolder Card */}
                   <div
                     onClick={() => setCourseDialogOpen(true)}
                     style={{
@@ -982,8 +1044,8 @@ function AdminDocumentsPageContent() {
                 </div>
               </Box>
             )
-          ) : currentSubfolder === null ? (
-            /* LEVEL 2: Course folder interior: Subfolders + Direct files */
+          ) : currentFolder === null ? (
+            /* LEVEL 2: Course folder interior: subfolders + Direct files */
             <Box>
               {/* Back to Root button & Folder quick options */}
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
@@ -1006,7 +1068,7 @@ function AdminDocumentsPageContent() {
                     },
                   }}
                 >
-                  ← Back to Root
+                  {inRunningCourses ? "← Back to Running Courses" : "← Back to Root"}
                 </Button>
                 <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
                   <Button
@@ -1029,7 +1091,7 @@ function AdminDocumentsPageContent() {
                       },
                     }}
                   >
-                    New Subfolder
+                    New Folder
                   </Button>
                   <Button
                     variant="contained"
@@ -1056,183 +1118,317 @@ function AdminDocumentsPageContent() {
                 </Box>
               </Box>
 
-              {/* Subfolders Grid Section */}
-              <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                Subfolders ({activeSubfolders.length})
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
-                {activeSubfolders.map((sf) => {
-                  const sfDocs = documents.filter((d) => d.course_name === currentFolder && d.subfolder_id === sf.id);
-                  return (
-                    <div
-                      key={sf.id}
-                      onClick={() => setCurrentSubfolder(sf)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: 12,
-                        border: "1px solid #E2E8F0",
-                        borderRadius: 8,
-                        backgroundColor: "#FAFBFC",
-                        cursor: "pointer",
-                        transition: "all 0.15s ease",
-                      }}
-                      className="hover:border-[#00895a] hover:bg-slate-50"
-                    >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
-                        <FolderIcon sx={{ color: "#00895a", fontSize: 32 }} />
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#1A202C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {sf.name}
-                          </div>
-                          <div style={{ fontSize: 10, color: "#718096" }}>
-                            {sfDocs.length} files
-                          </div>
-                        </div>
-                      </Box>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSubfolder(sf.id, sf.name);
-                        }}
-                        sx={{ color: "#DC2626", p: 0.5 }}
-                      >
-                        <DeleteIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </div>
-                  );
-                })}
-
-                {/* Add Subfolder Quick Card */}
-                <div
-                  onClick={() => setSubfolderDialogOpen(true)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: 12,
-                    border: "1.5px dashed #CBD5E1",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    minHeight: 46,
-                  }}
-                  className="hover:border-[#006B3F] hover:bg-slate-50/20"
-                >
-                  <AddIcon sx={{ color: "#A0AEC0", fontSize: 18 }} />
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#718096" }}>Create Subfolder</div>
-                </div>
-              </div>
-
-              {/* Direct Files Section */}
               {renderFilterSortBar()}
-              <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                Files inside folder ({currentFolderDocs.length})
-              </div>
 
-              {currentFolderDocs.length === 0 ? (
-                <Box sx={{ py: 4, textAlign: "center", border: "1px dashed #E2E8F0", borderRadius: 3 }}>
-                  <p style={{ fontSize: 12, color: "#A0AEC0", margin: 0 }}>
-                    No direct files in this directory. Upload files or navigate inside subfolders.
-                  </p>
-                </Box>
-              ) : (
-                /* Renders file table */
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "2fr 1fr 1.2fr 100px",
-                      padding: "8px 16px",
-                      borderBottom: "2px solid #E2E8F0",
-                      color: "#718096",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    <div>Name</div>
-                    <div>Size</div>
-                    <div>Uploaded Date</div>
-                    <div style={{ textAlign: "right" }}>Actions</div>
+              {viewMode === "grid" ? (
+                <Box>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      Content ({activeFolders.length + currentFolderDocs.length})
+                    </div>
+                    {selectedDocIds.length > 0 && (
+                      <ZipDownloadButton
+                        selectedDocs={currentFolderDocs.filter(d => selectedDocIds.includes(d.id))}
+                        onClearSelection={() => setSelectedDocIds([])}
+                      />
+                    )}
                   </div>
 
-                  {currentFolderDocs.map((doc) => (
-                    <div
-                      key={doc.id}
-                      onClick={() => setPreviewDoc(doc)}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "2fr 1fr 1.2fr 100px",
-                        alignItems: "center",
-                        padding: "12px 16px",
-                        borderBottom: "1px solid #F1F5F9",
-                        cursor: "pointer",
-                        transition: "background-color 0.2s",
+                  {activeFolders.length === 0 && currentFolderDocs.length === 0 ? (
+                    <Box sx={{ py: 6, textAlign: "center", border: "1px dashed #E2E8F0", borderRadius: 3 }}>
+                      <p style={{ fontSize: 12, color: "#A0AEC0", margin: 0 }}>This folder is empty.</p>
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "16px",
+                        p: 2,
+                        backgroundColor: "#F8FAFC",
+                        borderRadius: 3,
+                        border: "1px solid #E2E8F0",
                       }}
-                      className="hover:bg-slate-50/70"
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                        <span style={{ fontSize: 20, flexShrink: 0, display: "flex", alignItems: "center" }}>
-                          {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.file_name) ? (
-                            <img
-                              src={doc.file_path}
-                              alt={doc.file_name}
-                              style={{
-                                width: 24,
-                                height: 24,
-                                objectFit: "cover",
-                                borderRadius: 4,
-                                border: "1px solid #E2E8F0",
-                              }}
-                            />
-                          ) : (
-                            getFileIcon(doc.file_name)
-                          )}
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#1A202C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {doc.file_name}
-                        </span>
+                      {/* subfolders first */}
+                      {activeFolders.map((sf) => (
+                        <ExplorerItem
+                          key={sf.id}
+                          type="folder"
+                          name={sf.name}
+                          onClick={() => setSubfolderPath([...subfolderPath, sf])}
+                          onDelete={() => handleDeleteSubfolder(sf.id, sf.name)}
+                          isAdmin
+                        />
+                      ))}
+                      {/* Add Folder Quick Card */}
+                      <div
+                        onClick={() => setSubfolderDialogOpen(true)}
+                        style={{
+                          width: 105,
+                          height: 115,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1.5px dashed #CBD5E1",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                        className="hover:border-[#006B3F] hover:bg-slate-50/20"
+                      >
+                        <AddIcon sx={{ color: "#A0AEC0", fontSize: 24, mb: 1 }} />
+                        <div style={{ fontSize: 10, fontWeight: 600, color: "#718096", textAlign: "center", paddingLeft: 4, paddingRight: 4 }}>
+                          New Folder
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: "#4A5568" }}>{formatFileSize(doc.file_size)}</div>
-                      <div style={{ fontSize: 12, color: "#718096" }}>{new Date(doc.upload_date).toLocaleDateString()}</div>
-                      <div style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
+                      {/* Files next */}
+                      {currentFolderDocs.map((doc) => (
+                        <ExplorerItem
+                          key={doc.id}
+                          type="file"
+                          name={doc.file_name}
+                          isSelected={selectedDocIds.includes(doc.id)}
+                          onSelect={(selected) => {
+                            if (selected) {
+                              setSelectedDocIds([...selectedDocIds, doc.id]);
+                            } else {
+                              setSelectedDocIds(selectedDocIds.filter(id => id !== doc.id));
+                            }
+                          }}
+                          onClick={() => setPreviewDoc(doc)}
+                          onDownload={() => triggerDirectDownload(doc.file_path, doc.file_name)}
+                          onRename={() => {
                             setRenameDocDialog(doc);
                             setEditedDocName(doc.file_name);
                           }}
+                          onDelete={() => setDeleteConfirm(doc)}
+                          isAdmin
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              ) : (
+                <Box>
+                  {/* subfolders Grid Section */}
+                  <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                    subfolders ({activeFolders.length})
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+                    {activeFolders.map((sf) => {
+                      const sfDocs = documents.filter((d) => d.course_name === currentFolder && d.subfolder_id === sf.id);
+                      return (
+                        <div
+                          key={sf.id}
+                          onClick={() => setSubfolderPath([...subfolderPath, sf])}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: 12,
+                            border: "1px solid #E2E8F0",
+                            borderRadius: 8,
+                            backgroundColor: "#FAFBFC",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                          className="hover:border-[#00895a] hover:bg-slate-50"
                         >
-                          <EditIcon sx={{ fontSize: 16, color: "#718096" }} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => triggerDirectDownload(doc.file_path, doc.file_name)}
-                          sx={{ color: "#006B3F" }}
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
+                            <FolderIcon sx={{ color: "#00895a", fontSize: 32 }} />
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "#1A202C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {sf.name}
+                              </div>
+                              <div style={{ fontSize: 10, color: "#718096" }}>
+                                {sfDocs.length} files
+                              </div>
+                            </div>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSubfolder(sf.id, sf.name);
+                            }}
+                            sx={{ color: "#DC2626", p: 0.5 }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </div>
+                      );
+                    })}
+
+                    {/* Add Folder Quick Card */}
+                    <div
+                      onClick={() => setSubfolderDialogOpen(true)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        padding: 12,
+                        border: "1.5px dashed #CBD5E1",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        minHeight: 46,
+                      }}
+                      className="hover:border-[#006B3F] hover:bg-slate-50/20"
+                    >
+                      <AddIcon sx={{ color: "#A0AEC0", fontSize: 18 }} />
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#718096" }}>Create Subfolder</div>
+                    </div>
+                  </div>
+
+                  {/* Direct Files Section */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      Files inside folder ({currentFolderDocs.length})
+                    </div>
+                    {selectedDocIds.length > 0 && (
+                      <ZipDownloadButton
+                        selectedDocs={currentFolderDocs.filter(d => selectedDocIds.includes(d.id))}
+                        onClearSelection={() => setSelectedDocIds([])}
+                      />
+                    )}
+                  </div>
+
+                  {currentFolderDocs.length === 0 ? (
+                    <Box sx={{ py: 4, textAlign: "center", border: "1px dashed #E2E8F0", borderRadius: 3 }}>
+                      <p style={{ fontSize: 12, color: "#A0AEC0", margin: 0 }}>
+                        No direct files in this directory. Upload files or navigate inside subfolders.
+                      </p>
+                    </Box>
+                  ) : (
+                    /* Renders file table */
+                    <div style={{ overflowX: "auto" }} className="scrollbar-none">
+                      <div style={{ display: "flex", flexDirection: "column", minWidth: 640 }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "40px 2fr 1fr 1.2fr 100px",
+                          padding: "8px 16px",
+                          borderBottom: "2px solid #E2E8F0",
+                          color: "#718096",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <Checkbox
+                            size="small"
+                            indeterminate={selectedDocIds.length > 0 && selectedDocIds.length < currentFolderDocs.length}
+                            checked={selectedDocIds.length === currentFolderDocs.length && currentFolderDocs.length > 0}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDocIds(currentFolderDocs.map(d => d.id));
+                              } else {
+                                setSelectedDocIds([]);
+                              }
+                            }}
+                            sx={{ p: 0, color: "#A0AEC0", "&.Mui-checked": { color: "#006B3F" } }}
+                          />
+                        </div>
+                        <div>Name</div>
+                        <div>Size</div>
+                        <div>Uploaded Date</div>
+                        <div style={{ textAlign: "right" }}>Actions</div>
+                      </div>
+
+                      {currentFolderDocs.map((doc) => (
+                        <div
+                          key={doc.id}
+                          onClick={() => setPreviewDoc(doc)}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "40px 2fr 1fr 1.2fr 100px",
+                            alignItems: "center",
+                            padding: "12px 16px",
+                            borderBottom: "1px solid #F1F5F9",
+                            cursor: "pointer",
+                            transition: "background-color 0.2s",
+                          }}
+                          className="hover:bg-slate-50/70"
                         >
-                          <DownloadIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => setDeleteConfirm(doc)} sx={{ color: "#DC2626" }}>
-                          <DeleteIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
+                          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center" }}>
+                            <Checkbox
+                              size="small"
+                              checked={selectedDocIds.includes(doc.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedDocIds([...selectedDocIds, doc.id]);
+                                } else {
+                                  setSelectedDocIds(selectedDocIds.filter(id => id !== doc.id));
+                                }
+                              }}
+                              sx={{ p: 0, color: "#A0AEC0", "&.Mui-checked": { color: "#006B3F" } }}
+                            />
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                            <span style={{ fontSize: 20, flexShrink: 0, display: "flex", alignItems: "center" }}>
+                              {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.file_name) ? (
+                                <img
+                                  src={doc.file_path}
+                                  alt={doc.file_name}
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    objectFit: "cover",
+                                    borderRadius: 4,
+                                    border: "1px solid #E2E8F0",
+                                  }}
+                                />
+                              ) : (
+                                getFileIcon(doc.file_name)
+                              )}
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#1A202C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {doc.file_name}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "#4A5568" }}>{formatFileSize(doc.file_size)}</div>
+                          <div style={{ fontSize: 12, color: "#718096" }}>{new Date(doc.upload_date).toLocaleDateString()}</div>
+                          <div style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setRenameDocDialog(doc);
+                                setEditedDocName(doc.file_name);
+                              }}
+                            >
+                              <EditIcon sx={{ fontSize: 16, color: "#718096" }} />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => triggerDirectDownload(doc.file_path, doc.file_name)}
+                              sx={{ color: "#006B3F" }}
+                            >
+                              <DownloadIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => setDeleteConfirm(doc)} sx={{ color: "#DC2626" }}>
+                              <DeleteIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </div>
+                        </div>
+                      ))}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </Box>
               )}
             </Box>
           ) : (
-            /* LEVEL 3: Inside a Subfolder. Show files belonging specifically to subfolder_id */
+            /* LEVEL 3: Inside a Folder. Show files belonging specifically to subfolder_id */
             <Box>
               {/* Back to Course folder button & Upload */}
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
                 <Button
                   onClick={() => {
-                    setCurrentSubfolder(null);
+                    setSubfolderPath(subfolderPath.slice(0, -1));
                     setSearchQuery("");
                   }}
                   variant="outlined"
@@ -1249,7 +1445,7 @@ function AdminDocumentsPageContent() {
                     },
                   }}
                 >
-                  ← Up to Course Root
+                  ← Back to {subfolderPath.length > 1 ? subfolderPath[subfolderPath.length - 2].name : currentFolder}
                 </Button>
                 <Button
                   variant="contained"
@@ -1271,110 +1467,313 @@ function AdminDocumentsPageContent() {
                     }
                   }}
                 >
-                  Upload to Subfolder
+                  Upload to Folder
                 </Button>
               </Box>
 
               {renderFilterSortBar()}
-              <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                Files in "{currentSubfolder.name}" ({currentFolderDocs.length})
-              </div>
 
-              {currentFolderDocs.length === 0 ? (
-                <Box sx={{ py: 8, textAlign: "center" }}>
-                  <div style={{ fontSize: 44, color: "#CBD5E1", marginBottom: 12 }}>📁</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#4A5568" }}>
-                    This subfolder is empty
-                  </div>
-                  <p style={{ fontSize: 11, color: "#A0AEC0", margin: "4px 0 0 0" }}>
-                    Click "Upload to Subfolder" to add documents inside this folder.
-                  </p>
-                </Box>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {/* Header Row */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "2fr 1fr 1.2fr 100px",
-                      padding: "8px 16px",
-                      borderBottom: "2px solid #E2E8F0",
-                      color: "#718096",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    <div>Name</div>
-                    <div>Size</div>
-                    <div>Uploaded Date</div>
-                    <div style={{ textAlign: "right" }}>Actions</div>
+              {viewMode === "grid" ? (
+                <Box>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      Content ({activeFolders.length + currentFolderDocs.length})
+                    </div>
+                    {selectedDocIds.length > 0 && (
+                      <ZipDownloadButton
+                        selectedDocs={currentFolderDocs.filter(d => selectedDocIds.includes(d.id))}
+                        onClearSelection={() => setSelectedDocIds([])}
+                      />
+                    )}
                   </div>
 
-                  {/* Files Loop */}
-                  {currentFolderDocs.map((doc) => (
-                    <div
-                      key={doc.id}
-                      onClick={() => setPreviewDoc(doc)}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "2fr 1fr 1.2fr 100px",
-                        alignItems: "center",
-                        padding: "12px 16px",
-                        borderBottom: "1px solid #F1F5F9",
-                        cursor: "pointer",
-                        transition: "background-color 0.2s",
+                  {activeFolders.length === 0 && currentFolderDocs.length === 0 ? (
+                    <Box sx={{ py: 6, textAlign: "center", border: "1px dashed #E2E8F0", borderRadius: 3 }}>
+                      <p style={{ fontSize: 12, color: "#A0AEC0", margin: 0 }}>This folder is empty.</p>
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "16px",
+                        p: 2,
+                        backgroundColor: "#F8FAFC",
+                        borderRadius: 3,
+                        border: "1px solid #E2E8F0",
                       }}
-                      className="hover:bg-slate-50/70"
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                        <span style={{ fontSize: 20, flexShrink: 0, display: "flex", alignItems: "center" }}>
-                          {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.file_name) ? (
-                            <img
-                              src={doc.file_path}
-                              alt={doc.file_name}
-                              style={{
-                                width: 24,
-                                height: 24,
-                                objectFit: "cover",
-                                borderRadius: 4,
-                                border: "1px solid #E2E8F0",
-                              }}
-                            />
-                          ) : (
-                            getFileIcon(doc.file_name)
-                          )}
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#1A202C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {doc.file_name}
-                        </span>
+                      {/* subfolders first */}
+                      {activeFolders.map((sf) => (
+                        <ExplorerItem
+                          key={sf.id}
+                          type="folder"
+                          name={sf.name}
+                          onClick={() => setSubfolderPath([...subfolderPath, sf])}
+                          onDelete={() => handleDeleteSubfolder(sf.id, sf.name)}
+                          isAdmin
+                        />
+                      ))}
+                      {/* Add Folder Quick Card */}
+                      <div
+                        onClick={() => setSubfolderDialogOpen(true)}
+                        style={{
+                          width: 105,
+                          height: 115,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1.5px dashed #CBD5E1",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                        className="hover:border-[#006B3F] hover:bg-slate-50/20"
+                      >
+                        <AddIcon sx={{ color: "#A0AEC0", fontSize: 24, mb: 1 }} />
+                        <div style={{ fontSize: 10, fontWeight: 600, color: "#718096", textAlign: "center", paddingLeft: 4, paddingRight: 4 }}>
+                          New Folder
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: "#4A5568" }}>{formatFileSize(doc.file_size)}</div>
-                      <div style={{ fontSize: 12, color: "#718096" }}>{new Date(doc.upload_date).toLocaleDateString()}</div>
-                      <div style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
+                      {/* Files next */}
+                      {currentFolderDocs.map((doc) => (
+                        <ExplorerItem
+                          key={doc.id}
+                          type="file"
+                          name={doc.file_name}
+                          isSelected={selectedDocIds.includes(doc.id)}
+                          onSelect={(selected) => {
+                            if (selected) {
+                              setSelectedDocIds([...selectedDocIds, doc.id]);
+                            } else {
+                              setSelectedDocIds(selectedDocIds.filter(id => id !== doc.id));
+                            }
+                          }}
+                          onClick={() => setPreviewDoc(doc)}
+                          onDownload={() => triggerDirectDownload(doc.file_path, doc.file_name)}
+                          onRename={() => {
                             setRenameDocDialog(doc);
                             setEditedDocName(doc.file_name);
                           }}
+                          onDelete={() => setDeleteConfirm(doc)}
+                          isAdmin
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              ) : (
+                <Box>
+                  {/* subfolders Grid Section */}
+                  <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                    subfolders ({activeFolders.length})
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+                    {activeFolders.map((sf) => {
+                      const sfDocs = documents.filter((d) => d.course_name === currentFolder && d.subfolder_id === sf.id);
+                      return (
+                        <div
+                          key={sf.id}
+                          onClick={() => setSubfolderPath([...subfolderPath, sf])}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: 12,
+                            border: "1px solid #E2E8F0",
+                            borderRadius: 8,
+                            backgroundColor: "#FAFBFC",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                          className="hover:border-[#00895a] hover:bg-slate-50"
                         >
-                          <EditIcon sx={{ fontSize: 16, color: "#718096" }} />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => triggerDirectDownload(doc.file_path, doc.file_name)}
-                          sx={{ color: "#006B3F" }}
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
+                            <FolderIcon sx={{ color: "#00895a", fontSize: 32 }} />
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "#1A202C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {sf.name}
+                              </div>
+                              <div style={{ fontSize: 10, color: "#718096" }}>
+                                {sfDocs.length} files
+                              </div>
+                            </div>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSubfolder(sf.id, sf.name);
+                            }}
+                            sx={{ color: "#718096", "&:hover": { color: "#E53E3E" } }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </div>
+                      );
+                    })}
+                    <div
+                      onClick={() => setSubfolderDialogOpen(true)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        padding: 12,
+                        border: "1.5px dashed #CBD5E1",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        minHeight: 46,
+                      }}
+                      className="hover:border-[#006B3F] hover:bg-slate-50/20"
+                    >
+                      <AddIcon sx={{ color: "#A0AEC0", fontSize: 18 }} />
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#718096" }}>Create Subfolder</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: "#718096", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                      Files in "{currentSubfolder?.name}" ({currentFolderDocs.length})
+                    </div>
+                    {selectedDocIds.length > 0 && (
+                      <ZipDownloadButton
+                        selectedDocs={currentFolderDocs.filter(d => selectedDocIds.includes(d.id))}
+                        onClearSelection={() => setSelectedDocIds([])}
+                      />
+                    )}
+                  </div>
+
+                  {currentFolderDocs.length === 0 ? (
+                    <Box sx={{ py: 8, textAlign: "center" }}>
+                      <div style={{ fontSize: 44, color: "#CBD5E1", marginBottom: 12 }}>📁</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#4A5568" }}>
+                        This Folder is empty
+                      </div>
+                      <p style={{ fontSize: 11, color: "#A0AEC0", margin: "4px 0 0 0" }}>
+                        Click "Upload to Folder" to add documents inside this folder.
+                      </p>
+                    </Box>
+                  ) : (
+                    <div style={{ overflowX: "auto" }} className="scrollbar-none">
+                      <div style={{ display: "flex", flexDirection: "column", minWidth: 640 }}>
+                      {/* Header Row */}
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "40px 2fr 1fr 1.2fr 100px",
+                          padding: "8px 16px",
+                          borderBottom: "2px solid #E2E8F0",
+                          color: "#718096",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <Checkbox
+                            size="small"
+                            indeterminate={selectedDocIds.length > 0 && selectedDocIds.length < currentFolderDocs.length}
+                            checked={selectedDocIds.length === currentFolderDocs.length && currentFolderDocs.length > 0}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDocIds(currentFolderDocs.map(d => d.id));
+                              } else {
+                                setSelectedDocIds([]);
+                              }
+                            }}
+                            sx={{ p: 0, color: "#A0AEC0", "&.Mui-checked": { color: "#006B3F" } }}
+                          />
+                        </div>
+                        <div>Name</div>
+                        <div>Size</div>
+                        <div>Uploaded Date</div>
+                        <div style={{ textAlign: "right" }}>Actions</div>
+                      </div>
+
+                      {/* Files Loop */}
+                      {currentFolderDocs.map((doc) => (
+                        <div
+                          key={doc.id}
+                          onClick={() => setPreviewDoc(doc)}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "40px 2fr 1fr 1.2fr 100px",
+                            alignItems: "center",
+                            padding: "12px 16px",
+                            borderBottom: "1px solid #F1F5F9",
+                            cursor: "pointer",
+                            transition: "background-color 0.2s",
+                          }}
+                          className="hover:bg-slate-50/70"
                         >
-                          <DownloadIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => setDeleteConfirm(doc)} sx={{ color: "#DC2626" }}>
-                          <DeleteIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
+                          <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", alignItems: "center" }}>
+                            <Checkbox
+                              size="small"
+                              checked={selectedDocIds.includes(doc.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedDocIds([...selectedDocIds, doc.id]);
+                                } else {
+                                  setSelectedDocIds(selectedDocIds.filter(id => id !== doc.id));
+                                }
+                              }}
+                              sx={{ p: 0, color: "#A0AEC0", "&.Mui-checked": { color: "#006B3F" } }}
+                            />
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                            <span style={{ fontSize: 20, flexShrink: 0, display: "flex", alignItems: "center" }}>
+                              {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(doc.file_name) ? (
+                                <img
+                                  src={doc.file_path}
+                                  alt={doc.file_name}
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    objectFit: "cover",
+                                    borderRadius: 4,
+                                    border: "1px solid #E2E8F0",
+                                  }}
+                                />
+                              ) : (
+                                getFileIcon(doc.file_name)
+                              )}
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: "#1A202C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {doc.file_name}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "#4A5568" }}>{formatFileSize(doc.file_size)}</div>
+                          <div style={{ fontSize: 12, color: "#718096" }}>{new Date(doc.upload_date).toLocaleDateString()}</div>
+                          <div style={{ textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                            <IconButton
+                              size="small"
+                              onClick={() => {
+                                setRenameDocDialog(doc);
+                                setEditedDocName(doc.file_name);
+                              }}
+                            >
+                              <EditIcon sx={{ fontSize: 16, color: "#718096" }} />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              onClick={() => triggerDirectDownload(doc.file_path, doc.file_name)}
+                              sx={{ color: "#006B3F" }}
+                            >
+                              <DownloadIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => setDeleteConfirm(doc)} sx={{ color: "#DC2626" }}>
+                              <DeleteIcon sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </div>
+                        </div>
+                      ))}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </Box>
               )}
             </Box>
           )}

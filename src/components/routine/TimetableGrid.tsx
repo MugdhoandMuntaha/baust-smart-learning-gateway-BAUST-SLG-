@@ -142,13 +142,14 @@ export default function TimetableGrid({ routine }: TimetableGridProps) {
   };
 
   return (
-    <Card id="timetable-grid-card" sx={{ p: 4, overflow: "hidden", display: "flex", flexDirection: "column", gap: 4 }}>
+    <Card id="timetable-grid-card" sx={{ p: { xs: 2, sm: 3, md: 4 }, overflow: "hidden", display: "flex", flexDirection: "column", gap: 4 }}>
       {/* 1. Header (Dynamic Official Schema style) */}
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", md: "row" },
           alignItems: "center",
-          gap: 4,
+          gap: { xs: 2, md: 4 },
           borderBottom: "2px solid #1A202C",
           pb: 2.5,
         }}
@@ -176,7 +177,7 @@ export default function TimetableGrid({ routine }: TimetableGridProps) {
         </Box>
 
         {/* Spacer to align logo centering */}
-        <Box sx={{ width: 90, flexShrink: 0 }} />
+        <Box sx={{ width: 90, flexShrink: 0, display: { xs: "none", md: "block" } }} />
       </Box>
 
       {/* 2. Metadata Info Row */}

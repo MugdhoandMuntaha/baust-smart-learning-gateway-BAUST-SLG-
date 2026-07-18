@@ -70,7 +70,7 @@
   - Upload file dialog with pre-selected course and progress bar
   - **Running Courses Portal**: Admin dashboard containing level/term choices for courses, sessional folders, and mapping teachers.
   - **Direct Downloads**: Direct client-side download behavior (`triggerDirectDownload`) enabled on all downloads.
-  - **Layout cleanup**: Swapped search bar to the left and aligned New Subfolder button right on the top navbar. Grouped `New Subfolder` button directly to the left of the `Upload File here` button in the lower row. Removed `+ Create Subfolder` quick card from the grid view.
+  - **Layout cleanup**: Swapped search bar to the left and aligned New Folder button right on the top navbar. Grouped `New Folder` button directly to the left of the `Upload File here` button in the lower row. Removed `+ Create Folder` quick card from the grid view.
   - **File Thumbnail Previews**: Implemented direct image previews in file listing tables.
 - [x] `admin/settings/page.tsx` — Updated settings page course list to display dynamic teacher details and avatar pictures.
 

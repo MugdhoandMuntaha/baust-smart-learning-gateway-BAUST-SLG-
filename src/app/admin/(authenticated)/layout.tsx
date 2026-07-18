@@ -44,8 +44,8 @@ export default async function AdminAuthenticatedLayout({
       </div>
 
       {/* Admin Navigation */}
-      <div className="border-b border-[#E2E8F0] bg-white px-6 py-2">
-        <nav className="flex gap-1">
+      <div className="border-b border-[#E2E8F0] bg-white px-4 md:px-6 py-2">
+        <nav className="flex gap-1 overflow-x-auto whitespace-nowrap scrollbar-none pb-1">
           {[
             { href: "/admin/dashboard", label: "Overview" },
             { href: "/admin/notices", label: "Notices" },
@@ -61,7 +61,7 @@ export default async function AdminAuthenticatedLayout({
             <a
               key={item.href}
               href={item.href}
-              className="px-4 py-2 text-sm font-medium text-[#4A5568] hover:text-[#1B4F72] hover:bg-[#F1F5F9] rounded-lg transition-colors no-underline"
+              className="px-4 py-2 text-sm font-medium text-[#4A5568] hover:text-[#1B4F72] hover:bg-[#F1F5F9] rounded-lg transition-colors no-underline shrink-0"
             >
               {item.label}
             </a>
@@ -70,7 +70,7 @@ export default async function AdminAuthenticatedLayout({
       </div>
 
       {/* Content */}
-      <main className="p-6 max-w-5xl mx-auto">{children}</main>
+      <main className="p-4 md:p-6 max-w-5xl mx-auto">{children}</main>
     </div>
   );
 }

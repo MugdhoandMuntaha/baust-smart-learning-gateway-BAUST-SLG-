@@ -74,6 +74,7 @@ export default function GeneratorPage() {
     courses: { name: string; code: string | null; teacher_name: string | null; teacher_designation: string | null } | null;
   }>>([]);
   const [dbTeachers, setDbTeachers] = useState<Array<{ id: string; full_name: string; designation: string; course_id?: string | null }>>([]);
+  const [sessionalCourses, setSessionalCourses] = useState<any[]>([]);
 
   // Auto-fill from student profile + fetch templates + fetch teachers
   useEffect(() => {
@@ -107,6 +108,18 @@ export default function GeneratorPage() {
           level: data.level || prev.level,
           term: data.term || prev.term,
         }));
+
+        const { data: coursesData } = await supabase
+          .from("courses")
+          .select("*")
+          .eq("level", data.level)
+          .eq("term", data.term)
+          .eq("type", "sessional")
+          .order("name", { ascending: true });
+
+        if (coursesData) {
+          setSessionalCourses(coursesData);
+        }
       }
       if (templatesRes.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -486,6 +499,46 @@ export default function GeneratorPage() {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {sessionalCourses.length > 0 && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem', color: '#374151' }}>Sessional Course</label>
+                  <select
+                    onChange={(e) => {
+                      const courseId = e.target.value;
+                      if (!courseId) return;
+                      const selectedCourse = sessionalCourses.find(c => c.id === courseId);
+                      if (selectedCourse) {
+                        const updatedForm = {
+                          ...form,
+                          courseTitle: selectedCourse.name,
+                          courseNo: selectedCourse.code || ""
+                        };
+                        const courseTeachers = dbTeachers.filter((teacher) => teacher.course_id === selectedCourse.id);
+                        if (courseTeachers.length > 0) {
+                          updatedForm.teachers = courseTeachers.map((ct) => ({ name: ct.full_name, designation: ct.designation }));
+                        } else if (selectedCourse.teacher_name) {
+                          updatedForm.teachers = [{
+                            name: selectedCourse.teacher_name,
+                            designation: selectedCourse.teacher_designation || ""
+                          }];
+                        } else {
+                          updatedForm.teachers = [];
+                        }
+                        setForm(updatedForm);
+                      }
+                    }}
+                    defaultValue=""
+                    style={{ width: '100%', padding: '0.5rem', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '0.875rem', background: '#fff', color: '#374151' }}
+                  >
+                    <option value="" disabled>Select a sessional course...</option>
+                    {sessionalCourses.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.code ? `${c.code} — ` : ""}{c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem', color: '#374151' }}>Course Title</label>
                 <input type="text" value={form.courseTitle} onChange={e => setForm({...form, courseTitle: e.target.value})} style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem' }} placeholder="e.g. Data Structures and Algorithm II Sessional" />

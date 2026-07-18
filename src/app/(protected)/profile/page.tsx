@@ -279,7 +279,7 @@ export default function StudentProfilePage() {
             helperText="Auth email cannot be changed"
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <TextField
               label="Full Name"
               value={profile.full_name}
@@ -297,7 +297,7 @@ export default function StudentProfilePage() {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <TextField
               fullWidth
               select
@@ -324,7 +324,7 @@ export default function StudentProfilePage() {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <TextField
               fullWidth
               select

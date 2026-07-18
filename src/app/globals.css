@@ -225,4 +225,13 @@ body {
   line-height: 40px !important;
 }
 
+/* Scrollbar Hiding Utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
