@@ -32,12 +32,13 @@ export default function FilePreviewModal({
   const ext = document.file_name.split(".").pop()?.toLowerCase();
   const isPDF = ext === "pdf";
   const isImage = ["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "");
+  const isOffice = ["docx", "doc", "pptx", "ppt", "xlsx", "xls"].includes(ext || "");
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth={isPDF || isImage ? "lg" : "xs"}
+      maxWidth={isPDF || isImage || isOffice ? "lg" : "xs"}
       fullWidth
       sx={{
         "& .MuiDialog-paper": {
@@ -101,7 +102,7 @@ export default function FilePreviewModal({
       </DialogTitle>
 
       {/* Modal Content */}
-      <DialogContent sx={{ p: 0, backgroundColor: "#FAFBFC", minHeight: isPDF || isImage ? 400 : "auto" }}>
+      <DialogContent sx={{ p: 0, backgroundColor: "#FAFBFC", minHeight: isPDF || isImage || isOffice ? 400 : "auto" }}>
         {isPDF ? (
           <Box sx={{ width: "100%", height: "70vh", overflow: "hidden" }}>
             <iframe
@@ -136,6 +137,18 @@ export default function FilePreviewModal({
                 borderRadius: 4,
                 boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
               }}
+            />
+          </Box>
+        ) : isOffice ? (
+          <Box sx={{ width: "100%", height: "75vh", overflow: "hidden" }}>
+            <iframe
+              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(document.file_path)}`}
+              style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+              }}
+              title={document.file_name}
             />
           </Box>
         ) : (
