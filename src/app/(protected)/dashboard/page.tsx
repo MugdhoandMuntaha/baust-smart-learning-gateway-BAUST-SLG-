@@ -174,14 +174,7 @@ export default function DashboardPage() {
     loadDashboardData();
   }, [scope, scopeLoading]);
 
-  const now = new Date();
-  const greeting =
-    now.getHours() < 12
-      ? "Good Morning"
-      : now.getHours() < 17
-        ? "Good Afternoon"
-        : "Good Evening";
-
+  
   // Category tags styling helper for notices
   const getNoticeCategoryStyle = (category: string) => {
     switch (category) {
@@ -234,12 +227,7 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <motion.div variants={itemVariants}>
         <div style={{ marginBottom: "8px" }}>
-          <h1 className="text-2xl font-bold text-[#1A202C]">
-            {greeting}
-          </h1>
-          <p className="text-sm text-[#4A5568] mt-1.5">
-            Welcome to BAUST Smart Learning Gateway
-          </p>
+          <h2 className="text-2xl font-bold text-[#4A5568] mt-1.5">Welcome to <span className="text-[#006B3F]">BAUST Smart Learning Gateway</span></h2>
         </div>
       </motion.div>
 

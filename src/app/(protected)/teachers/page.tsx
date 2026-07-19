@@ -69,7 +69,7 @@ export default function CourseTeachersPage() {
       {/* Page Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, color: "#1A202C", mb: 0.5 }}>
-          👨‍🏫 Course Teachers Directory
+          Course Teachers Directory
         </Typography>
         <Typography variant="body2" sx={{ color: "#718096" }}>
           Contact details and sessional course allocations for our honorable faculty members.

@@ -9,7 +9,7 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#F8F9FA" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#F8F9FA", overflowX: "hidden" }}>
       <Navbar />
 
       {/* Sidebar spacer + Main content wrapper */}
@@ -27,11 +27,12 @@ export default function ProtectedLayout({
         <main
           style={{
             flexGrow: 1,
+            minWidth: 0,
             minHeight: "100vh",
             paddingTop: NAVBAR_HEIGHT,
           }}
         >
-          <div className="px-4 py-6 md:px-8 md:py-8" style={{ maxWidth: 1152 }}>
+          <div className="px-4 py-6 md:px-8 md:py-8" style={{ maxWidth: 1152, width: "100%" }}>
             {children}
           </div>
         </main>

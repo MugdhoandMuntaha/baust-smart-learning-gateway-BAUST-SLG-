@@ -34,6 +34,28 @@ export default function FilePreviewModal({
   const isImage = ["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "");
   const isOffice = ["docx", "doc", "pptx", "ppt", "xlsx", "xls"].includes(ext || "");
 
+  const getOfficeSchemeUrl = () => {
+    if (!document) return "";
+    const fileUrl = document.file_path;
+    if (ext === "pptx" || ext === "ppt") {
+      return `ms-powerpoint:ofv|u|${fileUrl}`;
+    }
+    if (ext === "docx" || ext === "doc") {
+      return `ms-word:ofv|u|${fileUrl}`;
+    }
+    if (ext === "xlsx" || ext === "xls") {
+      return `ms-excel:ofv|u|${fileUrl}`;
+    }
+    return "";
+  };
+
+  const getOfficeAppName = () => {
+    if (ext === "pptx" || ext === "ppt") return "PowerPoint";
+    if (ext === "docx" || ext === "doc") return "Word";
+    if (ext === "xlsx" || ext === "xls") return "Excel";
+    return "Office";
+  };
+
   return (
     <Dialog
       open={open}
@@ -82,6 +104,30 @@ export default function FilePreviewModal({
           </Box>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          {isOffice && (
+            <Button
+              variant="outlined"
+              size="small"
+              href={getOfficeSchemeUrl()}
+              sx={{
+                textTransform: "none",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#006B3F",
+                borderColor: "rgba(0, 107, 63, 0.3)",
+                borderRadius: 2,
+                height: 30,
+                px: 1.5,
+                mr: 1,
+                "&:hover": {
+                  borderColor: "#006B3F",
+                  backgroundColor: "rgba(0, 107, 63, 0.04)",
+                },
+              }}
+            >
+              Open in {getOfficeAppName()}
+            </Button>
+          )}
           <IconButton
             onClick={() => triggerDirectDownload(document.file_path, document.file_name)}
             size="small"

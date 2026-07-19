@@ -73,7 +73,7 @@ export default function Navbar() {
       if (data) {
         setSettings({
           university_name: data.university_name || "Bangladesh Army University of Science & Technology",
-          department_name: data.department_name,
+          department_name: data.department_name ,
           section_name: data.section_name,
           batch_no: data.batch_no,
           logo_url: data.logo_url || null,
@@ -146,7 +146,7 @@ export default function Navbar() {
                 <img
                   src={settings.logo_url || "/logo.png"}
                   alt="Emblem"
-                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                  style={{ width: "70%", height: "100%", objectFit: "contain" }}
                 />
               </div>
             </Link>
@@ -160,7 +160,7 @@ export default function Navbar() {
               transform: "translateX(-50%)",
               textAlign: "center",
               pointerEvents: "none",
-              width: { xs: "60%", sm: "70%", md: "80%" },
+              width: { xs: "45%", sm: "65%", md: "80%" },
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -169,7 +169,7 @@ export default function Navbar() {
           >
             <Box
               sx={{
-                fontSize: { xs: "14px", sm: "18px", md: "22px" },
+                fontSize: { xs: "12px", sm: "17px", md: "22px" },
                 fontWeight: 800,
                 color: "#006B3F",
                 lineHeight: 1.2,
@@ -181,11 +181,16 @@ export default function Navbar() {
                 width: "100%",
               }}
             >
-              {settings.university_name}
+              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                {settings.university_name}
+              </Box>
+              <Box style={{ fontSize: "20px", fontWeight: 800 }} component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                BAUST SLG
+              </Box>
             </Box>
             <Box
               sx={{
-                fontSize: { xs: "10px", sm: "11px", md: "12px" },
+                fontSize: { xs: "9px", sm: "11px", md: "12px" },
                 color: "#00895a",
                 fontWeight: 600,
                 lineHeight: 1.2,

@@ -121,6 +121,7 @@ function AdminDocumentsPageContent() {
   const [sortBy, setSortBy] = useState<string>("date"); // 'name' | 'size' | 'date'
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showOptions, setShowOptions] = useState(false);
 
   useEffect(() => {
     setSelectedDocIds([]);
@@ -544,124 +545,162 @@ function AdminDocumentsPageContent() {
 
   const renderFilterSortBar = () => {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 2,
-          mb: 3,
-          p: 2,
-          backgroundColor: "#F8FAFC",
-          borderRadius: 2.5,
-          border: "1px solid #E2E8F0",
-        }}
-      >
-        {/* File Type Filter Chips */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5568", marginRight: 8 }}>Filter:</span>
-          {[
-            { value: "all", label: "📁 All Files" },
-            { value: "pdf", label: "📄 PDF" },
-            { value: "image", label: "🖼️ Images" },
-            { value: "ppt", label: "📊 Slides (PPT)" },
-            { value: "word", label: "📝 Word" },
-          ].map((type) => (
-            <Chip
-              key={type.value}
-              label={type.label}
-              onClick={() => setFilterType(type.value)}
-              variant={filterType === type.value ? "filled" : "outlined"}
-              sx={{
-                fontSize: 11,
-                fontWeight: 600,
-                backgroundColor: filterType === type.value ? "#006B3F" : "transparent",
-                color: filterType === type.value ? "#FFFFFF" : "#4A5568",
-                borderColor: filterType === type.value ? "#006B3F" : "#CBD5E1",
-                "&:hover": {
-                  backgroundColor: filterType === type.value ? "#005532" : "rgba(0, 107, 63, 0.04)",
-                },
-              }}
-              size="small"
-            />
-          ))}
+      <Box sx={{ width: "100%", mb: 3 }}>
+        {/* Toggle Button on Mobile */}
+        <Box sx={{ display: { xs: "block", sm: "none" }, mb: 2 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            onClick={() => setShowOptions(!showOptions)}
+            sx={{
+              textTransform: "none",
+              fontSize: 12,
+              fontWeight: 600,
+              borderColor: "#006B3F",
+              color: "#006B3F",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              px: 2,
+              py: 1,
+              borderRadius: 2,
+              "&:hover": {
+                borderColor: "#004d2d",
+                backgroundColor: "rgba(0, 107, 63, 0.04)",
+              }
+            }}
+          >
+            <span>🛠️ Filter & View Options</span>
+            <span style={{ fontWeight: 700 }}>{showOptions ? "▲ Hide" : "▼ Show"}</span>
+          </Button>
         </Box>
 
-        {/* Sorting Controls */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          {/* Layout Toggle */}
-          <IconButton
-            size="small"
-            onClick={() => setViewMode("grid")}
-            sx={{
-              border: "1px solid #CBD5E1",
-              borderRadius: 1.5,
-              backgroundColor: viewMode === "grid" ? "rgba(0, 107, 63, 0.08)" : "#FFFFFF",
-              borderColor: viewMode === "grid" ? "#006B3F" : "#CBD5E1",
-              color: viewMode === "grid" ? "#006B3F" : "#718096",
-              p: 0.5,
-              "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
-            }}
-            title="Grid View"
-          >
-            <GridViewIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={() => setViewMode("list")}
-            sx={{
-              border: "1px solid #CBD5E1",
-              borderRadius: 1.5,
-              backgroundColor: viewMode === "list" ? "rgba(0, 107, 63, 0.08)" : "#FFFFFF",
-              borderColor: viewMode === "list" ? "#006B3F" : "#CBD5E1",
-              color: viewMode === "list" ? "#006B3F" : "#718096",
-              p: 0.5,
-              "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
-            }}
-            title="List View"
-          >
-            <FormatListBulletedIcon sx={{ fontSize: 18 }} />
-          </IconButton>
+        {/* Filters/Sorting box - Collapsible on Mobile, always flex on Desktop */}
+        <Box
+          sx={{
+            display: { xs: showOptions ? "flex" : "none", sm: "flex" },
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 2,
+            p: 2,
+            backgroundColor: "#F8FAFC",
+            borderRadius: 2.5,
+            border: "1px solid #E2E8F0",
+          }}
+        >
+          {/* File Type Filter Chips */}
+          <Box sx={{ display: "flex", alignItems: { xs: "flex-start", sm: "center" }, flexDirection: { xs: "column", sm: "row" }, gap: 1, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5568", marginRight: 8 }}>Filter:</span>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              {[
+                { value: "all", label: "📁 All Files" },
+                { value: "pdf", label: "📄 PDF" },
+                { value: "image", label: "🖼️ Images" },
+                { value: "ppt", label: "📊 Slides (PPT)" },
+                { value: "word", label: "📝 Word" },
+              ].map((type) => (
+                <Chip
+                  key={type.value}
+                  label={type.label}
+                  onClick={() => setFilterType(type.value)}
+                  variant={filterType === type.value ? "filled" : "outlined"}
+                  sx={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    backgroundColor: filterType === type.value ? "#006B3F" : "transparent",
+                    color: filterType === type.value ? "#FFFFFF" : "#4A5568",
+                    borderColor: filterType === type.value ? "#006B3F" : "#CBD5E1",
+                    "&:hover": {
+                      backgroundColor: filterType === type.value ? "#005532" : "rgba(0, 107, 63, 0.04)",
+                    },
+                  }}
+                  size="small"
+                />
+              ))}
+            </Box>
+          </Box>
 
-          <Box sx={{ width: "1px", height: 20, backgroundColor: "#E2E8F0", mx: 0.5 }} />
+          {/* Sorting Controls */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: { xs: "space-between", sm: "flex-end" }, gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {/* Layout Toggle */}
+              <IconButton
+                size="small"
+                onClick={() => setViewMode("grid")}
+                sx={{
+                  border: "1px solid #CBD5E1",
+                  borderRadius: 1.5,
+                  backgroundColor: viewMode === "grid" ? "rgba(0, 107, 63, 0.08)" : "#FFFFFF",
+                  borderColor: viewMode === "grid" ? "#006B3F" : "#CBD5E1",
+                  color: viewMode === "grid" ? "#006B3F" : "#718096",
+                  p: 0.5,
+                  "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
+                }}
+                title="Grid View"
+              >
+                <GridViewIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => setViewMode("list")}
+                sx={{
+                  border: "1px solid #CBD5E1",
+                  borderRadius: 1.5,
+                  backgroundColor: viewMode === "list" ? "rgba(0, 107, 63, 0.08)" : "#FFFFFF",
+                  borderColor: viewMode === "list" ? "#006B3F" : "#CBD5E1",
+                  color: viewMode === "list" ? "#006B3F" : "#718096",
+                  p: 0.5,
+                  "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
+                }}
+                title="List View"
+              >
+                <FormatListBulletedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Box>
 
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5568" }}>Sort by:</span>
-          <Select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            size="small"
-            sx={{
-              fontSize: 12,
-              height: 32,
-              backgroundColor: "#FFFFFF",
-              borderRadius: 1.5,
-              "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD5E1" },
-              "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#006B3F" },
-            }}
-          >
-            <MenuItem value="name" sx={{ fontSize: 12 }}>Name</MenuItem>
-            <MenuItem value="size" sx={{ fontSize: 12 }}>Size</MenuItem>
-            <MenuItem value="date" sx={{ fontSize: 12 }}>Upload Date</MenuItem>
-          </Select>
+            <Box sx={{ width: "1px", height: 20, backgroundColor: "#E2E8F0", mx: 0.5, display: { xs: "none", sm: "block" } }} />
 
-          <IconButton
-            size="small"
-            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            sx={{
-              border: "1px solid #CBD5E1",
-              borderRadius: 1.5,
-              backgroundColor: "#FFFFFF",
-              p: 0.75,
-              "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
-            }}
-          >
-            {sortOrder === "asc" ? (
-              <span style={{ fontSize: 12, fontWeight: 700 }}>↑</span>
-            ) : (
-              <span style={{ fontSize: 12, fontWeight: 700 }}>↓</span>
-            )}
-          </IconButton>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: { xs: 1, sm: "initial" }, justifyContent: "flex-end" }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#4A5568", whiteSpace: "nowrap" }}>Sort by:</span>
+              <Select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                size="small"
+                sx={{
+                  fontSize: 12,
+                  height: 32,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 1.5,
+                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD5E1" },
+                  "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#006B3F" },
+                }}
+              >
+                <MenuItem value="name" sx={{ fontSize: 12 }}>Name</MenuItem>
+                <MenuItem value="size" sx={{ fontSize: 12 }}>Size</MenuItem>
+                <MenuItem value="date" sx={{ fontSize: 12 }}>Upload Date</MenuItem>
+              </Select>
+
+              <IconButton
+                size="small"
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                sx={{
+                  border: "1px solid #CBD5E1",
+                  borderRadius: 1.5,
+                  backgroundColor: "#FFFFFF",
+                  p: 0.75,
+                  "&:hover": { borderColor: "#006B3F", backgroundColor: "rgba(0, 107, 63, 0.04)" },
+                }}
+              >
+                {sortOrder === "asc" ? (
+                  <span style={{ fontSize: 12, fontWeight: 700 }}>↑</span>
+                ) : (
+                  <span style={{ fontSize: 12, fontWeight: 700 }}>↓</span>
+                )}
+              </IconButton>
+            </Box>
+          </Box>
         </Box>
       </Box>
     );
@@ -750,7 +789,7 @@ function AdminDocumentsPageContent() {
           }}
         >
           {/* Breadcrumb Path */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, fontSize: 13, color: "#4A5568", fontWeight: 600 }}>
+          <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 1, flexWrap: "wrap", fontSize: 13, color: "#4A5568", fontWeight: 600 }}>
             <span
               onClick={() => {
                 setInRunningCourses(false);
@@ -849,7 +888,7 @@ function AdminDocumentsPageContent() {
                 },
               }}
               sx={{
-                width: 320,
+                width: { xs: "100%", sm: 320 },
                 "& .MuiOutlinedInput-root": {
                   borderRadius: "50px",
                   fontSize: 13,

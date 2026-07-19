@@ -225,7 +225,7 @@ export default function AdminCoursesPage() {
           {courses.map((c) => (
             <div
               key={c.id}
-              className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex gap-4 items-center justify-between shadow-sm"
+              className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm"
             >
               {(() => {
                 const displayTeacher = c.teachers && c.teachers.length > 0 
@@ -242,15 +242,15 @@ export default function AdminCoursesPage() {
                 return (
                   <Link
                     href={`/admin/documents?folder=${encodeURIComponent(c.name)}`}
-                    style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "1rem", minWidth: 0, flex: 1, cursor: "pointer" }}
+                    style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: "1rem", minWidth: 0, flex: 1, cursor: "pointer", width: "100%" }}
                   >
                     <Avatar
                       src={displayTeacher.avatar || undefined}
-                      sx={{ width: 50, height: 50, bgcolor: "#EBF5FB", color: "#1B4F72", fontWeight: 600 }}
+                      sx={{ width: 50, height: 50, bgcolor: "#EBF5FB", color: "#1B4F72", fontWeight: 600, flexShrink: 0 }}
                     >
                       {displayTeacher.name ? displayTeacher.name[0]?.toUpperCase() : <BookIcon />}
                     </Avatar>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3 className="text-sm font-semibold text-[#1A202C] truncate">
                         {c.name}
                       </h3>
@@ -277,7 +277,7 @@ export default function AdminCoursesPage() {
                   </Link>
                 );
               })()}
-              <div className="flex flex-col gap-1 shrink-0">
+              <div className="flex flex-row sm:flex-col gap-1 justify-end w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
                 <IconButton size="small" onClick={() => handleOpenEdit(c)}>
                   <EditIcon sx={{ fontSize: 16 }} />
                 </IconButton>

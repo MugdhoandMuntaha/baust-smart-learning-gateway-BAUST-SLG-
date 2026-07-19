@@ -205,16 +205,16 @@ export default function AdminTeachersPage() {
           {teachers.map((t) => (
             <div
               key={t.id}
-              className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex gap-4 items-center justify-between shadow-sm"
+              className="bg-white border border-[#E2E8F0] rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm"
             >
-              <div className="flex items-center gap-4 min-w-0">
+              <div className="flex items-center gap-4 min-w-0 w-full">
                 <Avatar
                   src={t.avatar_url || undefined}
-                  sx={{ width: 64, height: 64, bgcolor: "#EBF5FB", color: "#1B4F72", fontWeight: 600 }}
+                  sx={{ width: 64, height: 64, bgcolor: "#EBF5FB", color: "#1B4F72", fontWeight: 600, flexShrink: 0 }}
                 >
                   {t.full_name[0]?.toUpperCase()}
                 </Avatar>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h3 className="text-sm font-semibold text-[#1A202C] truncate">
                     {t.full_name}
                   </h3>
@@ -228,7 +228,7 @@ export default function AdminTeachersPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-1 shrink-0">
+              <div className="flex flex-row sm:flex-col gap-1 justify-end w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
                 <IconButton size="small" onClick={() => handleOpenEdit(t)}>
                   <EditIcon sx={{ fontSize: 16 }} />
                 </IconButton>

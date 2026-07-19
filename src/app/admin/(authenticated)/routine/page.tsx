@@ -290,13 +290,14 @@ export default function AdminRoutinePage() {
       </div>
 
       {/* Routine Grid Board */}
-      <Card sx={{ p: 4, overflow: "hidden", display: "flex", flexDirection: "column", gap: 4 }}>
+      <Card sx={{ p: { xs: 2, sm: 3, md: 4 }, overflow: "hidden", display: "flex", flexDirection: "column", gap: 4 }}>
         {/* official header segment */}
         <Box
           sx={{
             display: "flex",
+            flexDirection: { xs: "column", md: "row" },
             alignItems: "center",
-            gap: 4,
+            gap: { xs: 2, md: 4 },
             borderBottom: "2px solid #1A202C",
             pb: 2.5,
           }}
@@ -320,7 +321,7 @@ export default function AdminRoutinePage() {
               Batchwise Class Routine, Winter 2026
             </p>
           </Box>
-          <Box sx={{ width: 90, flexShrink: 0 }} />
+          <Box sx={{ width: 90, flexShrink: 0, display: { xs: "none", md: "block" } }} />
         </Box>
 
         {/* metadata info row */}

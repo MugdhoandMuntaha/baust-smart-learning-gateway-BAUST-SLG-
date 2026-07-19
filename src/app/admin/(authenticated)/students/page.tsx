@@ -172,16 +172,18 @@ export default function AdminStudentsPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {pendingList.map((req) => (
-              <div
+              <Box
                 key={req.id}
-                style={{
+                sx={{
                   display: "flex",
-                  alignItems: "center",
+                  flexDirection: { xs: "column", sm: "row" },
+                  alignItems: { xs: "stretch", sm: "center" },
                   justifyContent: "space-between",
-                  padding: 16,
+                  padding: 2,
                   border: "1px solid #E2E8F0",
-                  borderRadius: 8,
+                  borderRadius: 2,
                   backgroundColor: "#FAFBFC",
+                  gap: 2,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -201,7 +203,7 @@ export default function AdminStudentsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                   <Button
                     variant="contained"
                     color="success"
@@ -232,7 +234,7 @@ export default function AdminStudentsPage() {
                     Reject
                   </Button>
                 </div>
-              </div>
+              </Box>
             ))}
           </div>
         )}
@@ -263,10 +265,11 @@ export default function AdminStudentsPage() {
             {search ? "No students matching your search criteria." : "No approved student accounts directory."}
           </p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ overflowX: "auto" }} className="scrollbar-none">
             <table
               style={{
                 width: "100%",
+                minWidth: 700,
                 borderCollapse: "collapse",
                 fontFamily: "var(--font-sans)",
                 fontSize: 13,

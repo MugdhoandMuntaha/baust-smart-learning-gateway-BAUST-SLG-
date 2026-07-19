@@ -16,7 +16,7 @@ export default async function AdminAuthenticatedLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-[#F8F9FA] overflow-x-hidden">
       {/* Admin Top Bar */}
       <div
         className="sticky top-0 z-50 px-6 py-3 flex items-center justify-between"
