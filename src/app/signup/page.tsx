@@ -19,11 +19,14 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function StudentSignupPage() {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [studentId, setStudentId] = useState("");
   const [department, setDepartment] = useState("CSE");
   const [section, setSection] = useState("C");
+  const [level, setLevel] = useState("3");
+  const [term, setTerm] = useState("I");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -56,9 +59,12 @@ export default function StudentSignupPage() {
     }
 
     try {
-      // 1. Register Auth user
+      // 1. Generate unique auth email from username to bypass SMTP limits
+      const authEmail = `${username.trim().toLowerCase()}@baust-gateway.local`;
+
+      // 2. Register Auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: authEmail,
         password: password,
       });
 
@@ -94,11 +100,14 @@ export default function StudentSignupPage() {
           .from("student_profiles")
           .insert({
             id: userId,
-            email: email.trim(),
+            email: email.trim() ? email.trim() : authEmail,
+            username: username.trim().toLowerCase(),
             full_name: fullName.trim(),
             student_id: studentId.trim(),
             department: department,
             section: section,
+            level: level,
+            term: term,
             avatar_url: finalAvatarUrl,
             approved: false, // join request pending
           });
@@ -108,6 +117,10 @@ export default function StudentSignupPage() {
           setLoading(false);
           return;
         }
+
+        // Cache credentials in localStorage for auto-filling login form (store username as autoFillEmail)
+        localStorage.setItem("autoFillEmail", username.trim().toLowerCase());
+        localStorage.setItem("autoFillPassword", password);
 
         setSuccess(true);
         setTimeout(() => {
@@ -222,6 +235,17 @@ export default function StudentSignupPage() {
                 </Button>
               </Box>
 
+              <TextField
+                fullWidth
+                label="Choose Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                required
+                disabled={loading}
+                placeholder="e.g. shah_junaid (lowercase and underscores)"
+                helperText="Use this username to log in daily."
+              />
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <TextField
                   fullWidth
@@ -270,14 +294,48 @@ export default function StudentSignupPage() {
                 />
               </div>
 
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Level"
+                  value={level}
+                  onChange={(e) => setLevel(e.target.value)}
+                  required
+                  disabled={loading}
+                >
+                  {["1", "2", "3", "4"].map((lvl) => (
+                    <MenuItem key={lvl} value={lvl}>
+                      Level {lvl}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  fullWidth
+                  select
+                  label="Term"
+                  value={term}
+                  onChange={(e) => setTerm(e.target.value)}
+                  required
+                  disabled={loading}
+                >
+                  {["I", "II"].map((trm) => (
+                    <MenuItem key={trm} value={trm}>
+                      Term {trm}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </div>
+
               <TextField
                 fullWidth
-                label="Email Address"
+                label="Email Address (Optional)"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
                 disabled={loading}
+                helperText="Optional. Can be used for recovery."
               />
 
               <TextField

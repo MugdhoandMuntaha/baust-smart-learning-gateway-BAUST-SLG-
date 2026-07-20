@@ -15,7 +15,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function StudentLoginPage() {
-  const [email, setEmail] = useState("");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,14 +49,31 @@ export default function StudentLoginPage() {
     loadSettings();
   }, []);
 
+  useEffect(() => {
+    const autoEmail = localStorage.getItem("autoFillEmail");
+    const autoPass = localStorage.getItem("autoFillPassword");
+    if (autoEmail) {
+      setUsernameOrEmail(autoEmail);
+      localStorage.removeItem("autoFillEmail");
+    }
+    if (autoPass) {
+      setPassword(autoPass);
+      localStorage.removeItem("autoFillPassword");
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
+      const loginEmail = usernameOrEmail.includes("@")
+        ? usernameOrEmail.trim()
+        : `${usernameOrEmail.trim().toLowerCase()}@baust-gateway.local`;
+
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: loginEmail,
         password: password,
       });
 
@@ -160,11 +177,11 @@ export default function StudentLoginPage() {
           >
             <TextField
               fullWidth
-              label="Email Address"
-              type="email"
-              value={email}
+              label="Username or Email"
+              type="text"
+              value={usernameOrEmail}
               onChange={(e) => {
-                setEmail(e.target.value);
+                setUsernameOrEmail(e.target.value);
                 setError("");
               }}
               required
