@@ -22,6 +22,7 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import FormatListNumberedOutlinedIcon from "@mui/icons-material/FormatListNumberedOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 const DRAWER_WIDTH = 260;
 
@@ -30,6 +31,11 @@ const NAV_ITEMS = [
     label: "Dashboard",
     href: "/dashboard",
     icon: <DashboardOutlinedIcon />,
+  },
+  {
+    label: "AI Assistant",
+    href: "/assistant",
+    icon: <AutoAwesomeOutlinedIcon sx={{ color: "#006B3F" }} />,
   },
   {
     label: "Documents",
