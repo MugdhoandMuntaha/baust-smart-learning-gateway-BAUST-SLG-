@@ -152,9 +152,6 @@ export default function StudentLoginPage() {
             <p className="text-sm text-[#4A5568] leading-relaxed">
               {settings.university_name}
             </p>
-            <p className="text-xs text-[#718096] mt-1 font-semibold">
-              {settings.department_name} • {settings.section_name} • {settings.batch_no}
-            </p>
             <div
               className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
               style={{
