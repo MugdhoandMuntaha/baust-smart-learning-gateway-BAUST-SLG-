@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void main() {
@@ -47,7 +48,14 @@ class _GatewayWebViewPageState extends State<GatewayWebViewPage> {
     super.initState();
     if (!kIsWeb) {
       _controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setJavaScriptMode(JavaScriptMode.unrestricted);
+
+      // Enable DOM storage (localStorage / sessionStorage) on Android WebView so login session persists!
+      if (_controller.platform is AndroidWebViewController) {
+        (_controller.platform as AndroidWebViewController).setDomStorageEnabled(true);
+      }
+
+      _controller
         ..setNavigationDelegate(
           NavigationDelegate(
             onProgress: (int progress) {

@@ -19,6 +19,7 @@ export default function StudentLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
 
   const [settings, setSettings] = useState({
@@ -29,6 +30,40 @@ export default function StudentLoginPage() {
   });
 
   const supabase = createClient();
+
+  // Auto-redirect if student or admin is already logged in
+  useEffect(() => {
+    async function checkExistingSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const user = session.user;
+          const { data: profile } = await supabase
+            .from("student_profiles")
+            .select("approved")
+            .eq("id", user.id)
+            .single();
+
+          const isStudent = !!profile;
+          if (!isStudent) {
+            router.replace("/admin/dashboard");
+            return;
+          } else if (!profile.approved) {
+            router.replace("/pending");
+            return;
+          } else {
+            router.replace("/dashboard");
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Session check error:", err);
+      } finally {
+        setCheckingSession(false);
+      }
+    }
+    checkExistingSession();
+  }, [router, supabase]);
 
   useEffect(() => {
     async function loadSettings() {
@@ -47,7 +82,7 @@ export default function StudentLoginPage() {
       }
     }
     loadSettings();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     const autoEmail = localStorage.getItem("autoFillEmail");
@@ -112,6 +147,17 @@ export default function StudentLoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f0faf5] via-white to-[#f5f9ff]">
+        <div className="flex flex-col items-center gap-3">
+          <CircularProgress size={40} sx={{ color: "#006B3F" }} />
+          <p className="text-sm font-medium text-[#006B3F]">Verifying session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#f0faf5] via-white to-[#f5f9ff] px-4 py-8">
