@@ -102,28 +102,117 @@ export default function DeadlineCard({ deadline, index }: DeadlineCardProps) {
           {deadline.title}
         </h3>
 
-        {/* Description */}
-        {deadline.description && (
-          <p className="text-sm text-[#4A5568] mb-3 leading-relaxed">
-            {deadline.description}
-          </p>
-        )}
+        {/* Description & Syllabus */}
+        {(() => {
+          let isJson = false;
+          let parsed: any = {};
+          if (deadline.description && deadline.description.startsWith("{")) {
+            try {
+              parsed = JSON.parse(deadline.description);
+              isJson = true;
+            } catch (e) {}
+          }
 
-        {/* Due Date */}
-        <div className="flex items-center gap-2 text-xs text-[#4A5568]">
-          <span>📅</span>
-          <span>
-            {dueDate.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            })}
-            {" at "}
-            {dueDate.toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
+          const activeSyllabus = parsed.syllabus || deadline.syllabus;
+
+          if (isJson) {
+            return (
+              <div className="text-xs text-[#4A5568] bg-[#F8FAFC] p-3 rounded-lg border border-[#EDF2F7] mb-3 space-y-1.5">
+                {parsed.course_name && (
+                  <div>
+                    <strong>Course:</strong> {parsed.course_name} {parsed.course_code ? `(${parsed.course_code})` : ""}
+                  </div>
+                )}
+                {parsed.teachers && (
+                  <div>
+                    <strong>Teacher:</strong> {parsed.teachers}
+                  </div>
+                )}
+                {parsed.experiment_date && (
+                  <div>
+                    <strong>Experiment Date:</strong> {parsed.experiment_date}
+                  </div>
+                )}
+                {parsed.assigned_date && (
+                  <div>
+                    <strong>Assigned Date:</strong> {parsed.assigned_date}
+                  </div>
+                )}
+                {activeSyllabus && (
+                  <div className="mt-2 pt-2 border-t border-[#E2E8F0]">
+                    <div className="flex items-center gap-1.5 text-[#006B3F] font-bold text-xs mb-1">
+                      <span>📖</span>
+                      <span>Syllabus:</span>
+                    </div>
+                    <p className="text-xs text-[#2D3748] font-medium whitespace-pre-line bg-emerald-50/70 p-2.5 rounded border border-emerald-100/80 leading-relaxed">
+                      {activeSyllabus}
+                    </p>
+                  </div>
+                )}
+                {parsed.description && (
+                  <div className="text-[#718096] italic mt-1.5 pt-1.5 border-t border-[#EDF2F7]">
+                    &ldquo;{parsed.description}&rdquo;
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div className="mb-3 space-y-2">
+              {activeSyllabus && (
+                <div className="p-2.5 bg-emerald-50/80 rounded-lg border border-emerald-200/80 text-xs">
+                  <div className="flex items-center gap-1.5 text-[#006B3F] font-bold mb-1">
+                    <span>📖</span>
+                    <span>Syllabus:</span>
+                  </div>
+                  <p className="text-xs text-[#2D3748] font-medium whitespace-pre-line leading-relaxed">
+                    {activeSyllabus}
+                  </p>
+                </div>
+              )}
+              {deadline.description && (
+                <p className="text-sm text-[#4A5568] leading-relaxed">
+                  {deadline.description}
+                </p>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Due Date & Period & Room */}
+        <div className="space-y-1.5 text-xs text-[#4A5568]">
+          <div className="flex items-center gap-2">
+            <span>📅</span>
+            <span>
+              {dueDate.toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}
+              {" at "}
+              {dueDate.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          {(deadline.period || deadline.room_no) && (
+            <div className="flex flex-wrap gap-3 mt-1 text-[#718096] bg-[rgba(255,255,255,0.4)] p-1.5 rounded-md border border-[rgba(0,0,0,0.03)]">
+              {deadline.period && (
+                <div className="flex items-center gap-1">
+                  <span>⏱️</span>
+                  <span>{deadline.period}</span>
+                </div>
+              )}
+              {deadline.room_no && (
+                <div className="flex items-center gap-1">
+                  <span>📍</span>
+                  <span>Room {deadline.room_no}</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

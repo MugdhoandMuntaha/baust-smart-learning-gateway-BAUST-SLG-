@@ -50,7 +50,7 @@ export default async function AdminAuthenticatedLayout({
             { href: "/admin/dashboard", label: "Overview" },
             { href: "/admin/notices", label: "Notices" },
             { href: "/admin/routine", label: "Routine" },
-            { href: "/admin/deadlines", label: "Deadlines" },
+            { href: "/admin/deadlines", label: "Academic Schedule" },
             { href: "/admin/documents", label: "Documents" },
             { href: "/admin/settings", label: "Settings" },
             { href: "/admin/students", label: "Students" },

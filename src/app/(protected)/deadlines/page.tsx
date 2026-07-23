@@ -15,7 +15,11 @@ const FILTER_OPTIONS: { label: string; value: DeadlineCategory | "all" }[] = [
   { label: "📝 Assignment", value: "assignment" },
   { label: "❓ Quiz", value: "quiz" },
   { label: "🔬 Lab Report", value: "lab_report" },
+  { label: "🧪 Lab Evaluation", value: "lab_evaluation" },
+  { label: "🗣️ Viva", value: "viva" },
   { label: "🚀 Project", value: "project" },
+  { label: "🎓 Mid Exam", value: "mid_exam" },
+  { label: "✍️ Class Test (CT)", value: "ct" },
 ];
 
 export default function DeadlinesPage() {
@@ -76,18 +80,18 @@ export default function DeadlinesPage() {
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg, #DC2626 0%, #EF4444 100%)",
-              boxShadow: "0 4px 12px rgba(220, 38, 38, 0.25)",
+              background: "linear-gradient(135deg, #006B3F 0%, #00895a 100%)",
+              boxShadow: "0 4px 12px rgba(0, 107, 63, 0.25)",
             }}
           >
             <TimerOutlinedIcon sx={{ fontSize: 22, color: "#FFFFFF" }} />
           </div>
           <div>
             <h1 className="text-xl font-bold text-[#1A202C]">
-              Deadline Tracker
+              Academic Schedule
             </h1>
             <p className="text-xs text-[#A0AEC0]">
-              {deadlines.length} upcoming{" "}
+              {deadlines.length} scheduled items{" "}
               {criticalCount > 0 && (
                 <span className="text-[#DC2626] font-semibold">
                   • {criticalCount} urgent
@@ -125,8 +129,8 @@ export default function DeadlinesPage() {
       {/* Loading */}
       {loading && (
         <div className="text-center py-12">
-          <div className="w-8 h-8 border-2 border-[#DC2626] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-[#A0AEC0]">Loading deadlines...</p>
+          <div className="w-8 h-8 border-2 border-[#006B3F] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-[#A0AEC0]">Loading schedule...</p>
         </div>
       )}
 
@@ -135,12 +139,12 @@ export default function DeadlinesPage() {
         <div className="text-center py-16 bg-white rounded-xl border border-[#E2E8F0]">
           <TimerOutlinedIcon sx={{ fontSize: 48, color: "#E2E8F0", mb: 2 }} />
           <h3 className="text-base font-semibold text-[#4A5568] mb-1">
-            {filter !== "all" ? "No deadlines in this category" : "All clear!"}
+            {filter !== "all" ? "No schedule items in this category" : "All clear!"}
           </h3>
           <p className="text-sm text-[#A0AEC0]">
             {filter !== "all"
               ? "Try a different filter"
-              : "No upcoming deadlines. Enjoy the breather!"}
+              : "No upcoming schedule items. Enjoy the breather!"}
           </p>
         </div>
       )}

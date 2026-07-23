@@ -126,7 +126,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (scopeLoading || !scope) return;
+    if (scopeLoading) return;
+    if (!scope) {
+      setLoading(false);
+      return;
+    }
     const s = scope;
     const supabase = createClient();
     async function loadDashboardData() {
@@ -211,11 +215,64 @@ export default function DashboardPage() {
     return found ? found.id : null;
   };
 
-  // Find nearest overall deadline
-  const upcomingDeadlines = deadlines.filter((d) => {
-    return new Date(d.due_date) >= new Date();
-  });
-  const nearestDeadline = upcomingDeadlines[0];
+  // Group deadlines for the next 7 days chronologically
+  const getSevenDaySchedule = () => {
+    const now = new Date();
+    // Start of today (00:00:00)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // End of 7 days from now (23:59:59)
+    const sevenDaysEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    sevenDaysEnd.setHours(23, 59, 59, 999);
+
+    // Filter deadlines in this range
+    const scheduleItems = deadlines.filter((d) => {
+      const itemDate = new Date(d.due_date);
+      return itemDate >= todayStart && itemDate <= sevenDaysEnd;
+    });
+
+    // Group by day of the week
+    const groups: { [key: string]: typeof deadlines } = {};
+    scheduleItems.forEach((item) => {
+      const itemDate = new Date(item.due_date);
+      const isToday = itemDate.toDateString() === now.toDateString();
+      
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      const isTomorrow = itemDate.toDateString() === tomorrow.toDateString();
+
+      let dayLabel = "";
+      if (isToday) {
+        dayLabel = "Today";
+      } else if (isTomorrow) {
+        dayLabel = "Tomorrow";
+      } else {
+        dayLabel = itemDate.toLocaleDateString("en-US", { weekday: "long" });
+      }
+
+      // We include the date to sort groups chronologically
+      const sortKey = itemDate.toISOString().slice(0, 10);
+      const groupKey = `${sortKey}|${dayLabel}`;
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(item);
+    });
+
+    // Sort the keys chronologically
+    return Object.keys(groups)
+      .sort()
+      .map((key) => {
+        const [sortKey, dayLabel] = key.split("|");
+        return {
+          dateStr: sortKey,
+          dayLabel,
+          items: groups[key].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()),
+        };
+      });
+  };
+
+  const sevenDaySchedule = getSevenDaySchedule();
 
   return (
     <motion.div
@@ -237,7 +294,7 @@ export default function DashboardPage() {
         </Box>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* LEFT COLUMN: Notice Board Widget (md:col-span-7) */}
+          {/* LEFT COLUMN: 7-Day Academic Schedule Widget (md:col-span-7) */}
           <div className="md:col-span-7 flex flex-col">
             <Card
               sx={{
@@ -253,10 +310,10 @@ export default function DashboardPage() {
               {/* Header */}
               <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-4 mb-4">
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-lg font-bold text-[#1E293B] m-0">Notice Board</h2>
+                  <h2 className="text-lg font-bold text-[#1E293B] m-0">7-Day Academic Schedule</h2>
                 </div>
                 <Link
-                  href="/notices"
+                  href="/deadlines"
                   className="flex items-center gap-1 text-xs font-semibold text-[#006B3F] hover:text-[#00895a] no-underline transition-colors"
                 >
                   View All <ArrowForwardIcon sx={{ fontSize: 14 }} />
@@ -264,70 +321,131 @@ export default function DashboardPage() {
               </div>
 
               {/* Content */}
-              {notices.length === 0 ? (
-                <div className="flex-grow flex flex-col items-center justify-center py-10 text-center">
-                  <p className="text-sm text-[#94A3B8] m-0 font-medium">No active notices posted yet.</p>
+              {sevenDaySchedule.length === 0 ? (
+                <div className="flex-grow flex flex-col items-center justify-center py-12 text-center">
+                  <p className="text-sm text-[#94A3B8] m-0 font-medium">All clean! No tasks scheduled for the next 7 days.</p>
                 </div>
               ) : (
-                <div className="space-y-4 flex-grow">
-                  {notices.map((notice) => {
-                    const style = getNoticeCategoryStyle(notice.category);
-                    return (
-                      <div
-                        key={notice.id}
-                        className="p-3.5 rounded-xl border border-[#F1F5F9] bg-[#FCFDFD] hover:border-[#CBD5E1] transition-all flex flex-col gap-2 relative group"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span
-                              style={{
-                                display: "inline-block",
-                                fontSize: "10px",
-                                fontWeight: 700,
-                                backgroundColor: style.bg,
-                                color: style.color,
-                                borderRadius: "4px",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.03em",
-                                padding: "3px 8px"
-                              }}
-                            >
-                              {style.label}
-                            </span>
-                            {notice.is_pinned && (
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  fontSize: "10px",
-                                  fontWeight: 700,
-                                  backgroundColor: "#FEF3C7",
-                                  color: "#D97706",
-                                  borderRadius: "4px",
-                                  padding: "2px 6px",
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.03em",
-                                }}
-                              >
-                                Pinned
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[11px] text-[#94A3B8] font-medium">
-                            {new Date(notice.created_at).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-bold text-[#1E293B] m-0 group-hover:text-[#006B3F] transition-colors line-clamp-1">
-                          {notice.title}
-                        </h4>
-                        <p className="text-xs text-[#64748B] m-0 line-clamp-2 leading-relaxed">
-                          {notice.content}
-                        </p>
+                <div className="space-y-6 flex-grow">
+                  {sevenDaySchedule.map((group) => (
+                    <div key={group.dateStr} className="space-y-3">
+                      {/* Day Label Header */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-[#4A5568] uppercase tracking-wider bg-[#EDF2F7] px-2.5 py-0.5 rounded-md">
+                          {group.dayLabel}
+                        </span>
+                        <span className="text-xs text-[#A0AEC0] font-medium">
+                          {new Date(group.dateStr).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                        </span>
                       </div>
-                    );
-                  })}
+
+                      {/* Items under this day */}
+                      <div className="pl-3 border-l-2 border-[#E2E8F0] space-y-4">
+                        {group.items.map((item) => {
+                          // Category styling
+                          const getCatStyles = (cat: string) => {
+                            switch (cat) {
+                              case "ct":
+                                return { bg: "#FEF2F2", text: "#DC2626", border: "#FEE2E2", label: "CT" };
+                              case "lab_report":
+                                return { bg: "#F0FDF4", text: "#16A34A", border: "#DCFCE7", label: "Lab Report" };
+                              case "assignment":
+                                return { bg: "#EEF2FF", text: "#6366F1", border: "#E0E7FF", label: "Assignment" };
+                              case "mid_exam":
+                                return { bg: "#FAF5FF", text: "#9333EA", border: "#F3E8FF", label: "Mid Exam" };
+                              default:
+                                return { bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0", label: "Project/Quiz" };
+                            }
+                          };
+                          const catStyle = getCatStyles(item.category);
+
+                          return (
+                            <div key={item.id} className="text-xs space-y-1 bg-[#FCFDFD] p-3 rounded-xl border border-[#F1F5F9] hover:border-[#CBD5E1] transition-all">
+                              <div className="flex items-start justify-between gap-3">
+                                <span className="font-bold text-[#2D3748] text-sm">
+                                  {item.title}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: "9px",
+                                    fontWeight: 700,
+                                    backgroundColor: catStyle.bg,
+                                    color: catStyle.text,
+                                    border: `1px solid ${catStyle.border}`,
+                                    borderRadius: "4px",
+                                    padding: "2px 8px",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {catStyle.label}
+                                </span>
+                              </div>
+                              {(() => {
+                                let isJson = false;
+                                let parsed: any = {};
+                                if (item.description && item.description.startsWith("{")) {
+                                  try {
+                                    parsed = JSON.parse(item.description);
+                                    isJson = true;
+                                  } catch (e) {}
+                                }
+
+                                if (isJson) {
+                                  return (
+                                    <div className="text-[11px] text-[#4A5568] space-y-0.5 mt-1 bg-[#F8FAFC] p-2 rounded-lg border border-[#EDF2F7]">
+                                      <div>
+                                        <strong>Course:</strong> {parsed.course_name} ({parsed.course_code})
+                                      </div>
+                                      {parsed.teachers && (
+                                        <div>
+                                          <strong>Teachers:</strong> {parsed.teachers}
+                                        </div>
+                                      )}
+                                      {parsed.experiment_date && (
+                                        <div>
+                                          <strong>Experiment Date:</strong> {parsed.experiment_date}
+                                        </div>
+                                      )}
+                                      {parsed.assigned_date && (
+                                        <div>
+                                          <strong>Assigned Date:</strong> {parsed.assigned_date}
+                                        </div>
+                                      )}
+                                      {parsed.description && (
+                                        <div className="text-[#718096] italic mt-1 pt-1 border-t border-[#EDF2F7]">
+                                          &ldquo;{parsed.description}&rdquo;
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  item.description && (
+                                    <p className="text-xs text-[#64748B] m-0 leading-relaxed">
+                                      {item.description}
+                                    </p>
+                                  )
+                                );
+                              })()}
+                              <div className="flex items-center gap-3 text-xs text-[#94A3B8] mt-1.5 font-medium">
+                                {item.period && <span className="flex items-center gap-1">⏱️ {item.period}</span>}
+                                {item.room_no && <span className="flex items-center gap-1">📍 Room {item.room_no}</span>}
+                                {!item.period && !item.room_no && (
+                                  <span className="flex items-center gap-1">
+                                    ⏰ {new Date(item.due_date).toLocaleTimeString("en-US", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </Card>
@@ -462,68 +580,99 @@ export default function DashboardPage() {
               )}
             </Card>
 
-            {/* Widget 3: Most Recent Deadline Counter */}
+            {/* Widget 3: Notice Board */}
             <Card
               sx={{
                 p: 3,
                 borderRadius: 4,
                 border: "1px solid #E2E8F0",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.02)",
-                background: "linear-gradient(135deg, #FFFFFF 0%, #FAFBFB 100%)",
                 flexGrow: 1,
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between",
+                background: "linear-gradient(135deg, #FFFFFF 0%, #FAFBFB 100%)",
               }}
             >
-              <div>
-                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-[#1E293B] m-0">Nearest Deadline</h3>
-                  </div>
-                  <Link
-                    href="/deadlines"
-                    className="flex items-center gap-1 text-[11px] font-bold text-[#DC2626] hover:text-[#B91C1C] no-underline transition-colors"
-                  >
-                    Tracker <ArrowForwardIcon sx={{ fontSize: 12 }} />
-                  </Link>
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#1E293B] m-0">Notice Board</h3>
                 </div>
-
-                {nearestDeadline ? (
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span
-                          style={{
-                            display: "inline-block",
-                            fontSize: "9px",
-                            fontWeight: 800,
-                            backgroundColor: "#FEE2E2",
-                            color: "#DC2626",
-                            borderRadius: "4px",
-                            padding: "2px 6px",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                          }}
-                        >
-                          {nearestDeadline.category.replace("_", " ")}
-                        </span>
-                      </div>
-                      <h4 className="text-sm font-bold text-[#1E293B] m-0 line-clamp-1">
-                        {nearestDeadline.title}
-                      </h4>
-                    </div>
-
-                    <Box sx={{ py: 1.5, borderTop: "1px dashed #E2E8F0", borderBottom: "1px dashed #E2E8F0" }}>
-                      <CountdownTimer targetDate={nearestDeadline.due_date} />
-                    </Box>
-                  </div>
-                ) : (
-                  <div className="py-8 text-center">
-                    <p className="text-xs text-[#94A3B8] m-0 font-medium">No upcoming deadlines. All caught up!</p>
-                  </div>
-                )}
+                <Link
+                  href="/notices"
+                  className="flex items-center gap-1 text-[11px] font-bold text-[#006B3F] hover:text-[#005230] no-underline transition-colors"
+                >
+                  View All <ArrowForwardIcon sx={{ fontSize: 12 }} />
+                </Link>
               </div>
+
+              {/* Content */}
+              {notices.length === 0 ? (
+                <div className="flex-grow flex flex-col items-center justify-center py-6 text-center">
+                  <p className="text-xs text-[#94A3B8] m-0 font-medium">No active notices posted yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
+                  {notices.map((notice) => {
+                    const style = getNoticeCategoryStyle(notice.category);
+                    return (
+                      <div
+                        key={notice.id}
+                        className="p-3 rounded-xl border border-[#F1F5F9] bg-[#FCFDFD] hover:border-[#CBD5E1] transition-all flex flex-col gap-1.5 relative group"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              style={{
+                                display: "inline-block",
+                                fontSize: "9px",
+                                fontWeight: 700,
+                                backgroundColor: style.bg,
+                                color: style.color,
+                                borderRadius: "4px",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.03em",
+                                padding: "2px 6px"
+                              }}
+                            >
+                              {style.label}
+                            </span>
+                            {notice.is_pinned && (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  backgroundColor: "#FEF3C7",
+                                  color: "#D97706",
+                                  borderRadius: "4px",
+                                  padding: "1px 5px",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.03em",
+                                }}
+                              >
+                                Pinned
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-[#94A3B8] font-medium">
+                            {new Date(notice.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-[#1E293B] m-0 group-hover:text-[#006B3F] transition-colors line-clamp-1">
+                          {notice.title}
+                        </h4>
+                        <p className="text-[11px] text-[#64748B] m-0 line-clamp-2 leading-relaxed">
+                          {notice.content}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </div>
         </div>

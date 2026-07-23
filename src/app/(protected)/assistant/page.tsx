@@ -16,6 +16,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import DownloadIcon from "@mui/icons-material/Download";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useStudentScope } from "@/hooks/useStudentScope";
+import { createClient } from "@/lib/supabase/client";
 
 interface Message {
   role: "user" | "model";
@@ -192,6 +193,7 @@ function parseTextFormatting(text: string): React.ReactNode[] {
 }
 
 export default function AssistantPage() {
+  const supabase = createClient();
   const { scope, loading: scopeLoading } = useStudentScope();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -244,9 +246,16 @@ You can ask me questions in **Bangla**, **English**, or **Banglish**. Try one of
       }));
       history.push({ role: "user", content: textToSend });
 
+      // Retrieve active session token to bypass cookie limitations in native WebViews
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           messages: history,
         }),
@@ -257,16 +266,17 @@ You can ask me questions in **Bangla**, **English**, or **Banglish**. Try one of
       if (data.reply) {
         setMessages((prev) => [...prev, { role: "model", content: data.reply }]);
       } else {
+        const errorMsg = data.error || "Unknown error occurred";
         setMessages((prev) => [
           ...prev,
-          { role: "model", content: "Sorry, I encountered an issue. Please try again." },
+          { role: "model", content: `Sorry, I encountered an issue: **${errorMsg}**. Please try again.` },
         ]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Chat error:", err);
       setMessages((prev) => [
         ...prev,
-        { role: "model", content: "Network error occurred. Please check your connection." },
+        { role: "model", content: `Network error occurred: ${err.message || err}. Please check your connection.` },
       ]);
     } finally {
       setSending(false);

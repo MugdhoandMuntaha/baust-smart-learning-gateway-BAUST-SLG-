@@ -16,17 +16,11 @@ export function useStudentScope() {
   const supabase = createClient();
 
   useEffect(() => {
-    async function loadScope() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
+    async function fetchProfile(userId: string, email: string) {
       const { data: profile } = await supabase
         .from("student_profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", userId)
         .maybeSingle();
 
       if (profile) {
@@ -36,12 +30,38 @@ export function useStudentScope() {
           section: profile.section || "A",
           fullName: profile.full_name || "",
           studentId: profile.student_id || "",
-          email: user.email || "",
+          email: email || "",
         });
+      } else {
+        setScope(null);
       }
       setLoading(false);
     }
-    loadScope();
+
+    // Initial check
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        fetchProfile(user.id, user.email || "");
+      } else {
+        setLoading(false);
+      }
+    });
+
+    // Listen to changes to handle async session loads in WebViews
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          fetchProfile(session.user.id, session.user.email || "");
+        } else {
+          setScope(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return { scope, loading };

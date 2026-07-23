@@ -92,7 +92,7 @@ export default function Navbar() {
     if (pathname.includes("/dashboard")) return "Dashboard";
     if (pathname.includes("/notices")) return "Notice Board";
     if (pathname.includes("/routine")) return "Class Routine";
-    if (pathname.includes("/deadlines")) return "Deadline Tracker";
+    if (pathname.includes("/deadlines")) return "Academic Schedule";
     if (pathname.includes("/documents")) return "Document Vault";
     return "BAUST Smart Learning Gateway";
   };

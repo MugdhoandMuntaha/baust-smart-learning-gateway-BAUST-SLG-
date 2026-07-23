@@ -2,7 +2,11 @@ export type DeadlineCategory =
   | "assignment"
   | "quiz"
   | "lab_report"
-  | "project";
+  | "project"
+  | "mid_exam"
+  | "ct"
+  | "lab_evaluation"
+  | "viva";
 
 export type UrgencyLevel = "critical" | "warning" | "safe";
 
@@ -10,8 +14,11 @@ export interface Deadline {
   id: string;
   title: string;
   description: string | null;
+  syllabus?: string | null;
   category: DeadlineCategory;
   due_date: string; // ISO date string
+  period?: string | null;
+  room_no?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +28,10 @@ export const DEADLINE_CATEGORY_LABELS: Record<DeadlineCategory, string> = {
   quiz: "Quiz",
   lab_report: "Lab Report",
   project: "Project",
+  mid_exam: "Mid Exam",
+  ct: "Class Test (CT)",
+  lab_evaluation: "Lab Evaluation",
+  viva: "Viva",
 };
 
 export const DEADLINE_CATEGORY_ICONS: Record<DeadlineCategory, string> = {
@@ -28,6 +39,10 @@ export const DEADLINE_CATEGORY_ICONS: Record<DeadlineCategory, string> = {
   quiz: "❓",
   lab_report: "🔬",
   project: "🚀",
+  mid_exam: "🎓",
+  ct: "✍️",
+  lab_evaluation: "🧪",
+  viva: "🗣️",
 };
 
 export function getUrgencyLevel(dueDate: string): UrgencyLevel {

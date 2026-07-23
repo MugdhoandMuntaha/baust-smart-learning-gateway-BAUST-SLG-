@@ -1,4 +1,5 @@
 import Navbar from "@/components/layout/Navbar";
+import NotificationManager from "@/components/notifications/NotificationManager";
 
 const DRAWER_WIDTH = 260;
 const NAVBAR_HEIGHT = 64;
@@ -33,6 +34,7 @@ export default function ProtectedLayout({
           }}
         >
           <div className="px-4 py-6 md:px-8 md:py-8" style={{ maxWidth: 1152, width: "100%" }}>
+            <NotificationManager />
             {children}
           </div>
         </main>

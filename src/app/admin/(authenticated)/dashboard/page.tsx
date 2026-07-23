@@ -37,11 +37,11 @@ const ADMIN_MODULES = [
     color: "#1B4F72",
   },
   {
-    title: "Deadlines",
-    description: "Set and track deadlines",
+    title: "Academic Schedule",
+    description: "Manage schedule and tasks",
     href: "/admin/deadlines",
     iconKey: "deadlines",
-    color: "#DC2626",
+    color: "#006B3F",
   },
   {
     title: "Documents",

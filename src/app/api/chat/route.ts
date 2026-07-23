@@ -17,8 +17,15 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Verify session
-    const { data: { user } } = await supabase.auth.getUser();
+    // Check for Authorization header (useful for Native WebViews with restricted cookie policies)
+    const authHeader = request.headers.get("Authorization");
+    let token: string | undefined = undefined;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    }
+
+    // Verify session using token if available, otherwise falling back to cookies
+    const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

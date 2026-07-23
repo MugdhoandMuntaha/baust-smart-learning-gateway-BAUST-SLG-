@@ -48,9 +48,9 @@ const NAV_ITEMS = [
     icon: <CalendarMonthOutlinedIcon />,
   },
   {
-    label: "Deadlines",
+    label: "Academic Schedule",
     href: "/deadlines",
-    icon: <TimerOutlinedIcon />,
+    icon: <CalendarMonthOutlinedIcon />,
   },
   {
     label: "Notice Board",
