@@ -1486,28 +1486,52 @@ function AdminDocumentsPageContent() {
                 >
                   ← Back to {subfolderPath.length > 1 ? subfolderPath[subfolderPath.length - 2].name : currentFolder}
                 </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<CloudUploadIcon />}
-                  onClick={() => {
-                    setSelectedCourse(currentFolder);
-                    setUploadDialogOpen(true);
-                  }}
-                  sx={{
-                    textTransform: "none",
-                    fontSize: 12,
-                    background: "linear-gradient(135deg, #006B3F 0%, #00895a 100%)",
-                    height: 38,
-                    borderRadius: 2,
-                    boxShadow: "0 2px 6px rgba(0, 107, 63, 0.15)",
-                    "&:hover": {
-                      background: "linear-gradient(135deg, #005532 0%, #00704a 100%)",
-                    }
-                  }}
-                >
-                  Upload to Folder
-                </Button>
+                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={() => setSubfolderDialogOpen(true)}
+                    sx={{
+                      borderColor: "#006B3F",
+                      color: "#006B3F",
+                      textTransform: "none",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      height: 38,
+                      px: 2,
+                      "&:hover": {
+                        borderColor: "#00895a",
+                        backgroundColor: "rgba(0, 107, 63, 0.04)",
+                      },
+                    }}
+                  >
+                    New Subfolder
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<CloudUploadIcon />}
+                    onClick={() => {
+                      setSelectedCourse(currentFolder);
+                      setUploadDialogOpen(true);
+                    }}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: 12,
+                      background: "linear-gradient(135deg, #006B3F 0%, #00895a 100%)",
+                      height: 38,
+                      borderRadius: 2,
+                      boxShadow: "0 2px 6px rgba(0, 107, 63, 0.15)",
+                      "&:hover": {
+                        background: "linear-gradient(135deg, #005532 0%, #00704a 100%)",
+                      }
+                    }}
+                  >
+                    Upload to Folder
+                  </Button>
+                </Box>
               </Box>
 
               {renderFilterSortBar()}
