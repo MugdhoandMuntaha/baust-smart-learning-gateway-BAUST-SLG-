@@ -308,10 +308,11 @@ You can ask me questions in **Bangla**, **English**, or **Banglish**. Try one of
   // Update greeting when scope finishes loading
   useEffect(() => {
     if (scope) {
+      const displayName = scope.fullName ? ` ${scope.fullName}` : "";
       setMessages([
         {
           role: "model",
-          content: `Hello ${scope.fullName}! I am your **BAUST SLG AI Assistant** 🤖.
+          content: `Hello${displayName}! I am your **BAUST SLG AI Assistant** 🤖.
 
 I can help you look up documents, notices, active deadlines, and allocated teachers for your courses in **Level ${scope.level}, Term ${scope.term} (Section ${scope.section})**.
 
