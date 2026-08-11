@@ -242,7 +242,7 @@ export default function StudentSignupPage() {
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
                 required
                 disabled={loading}
-                placeholder="e.g. shah_junaid (lowercase and underscores)"
+                placeholder="(lowercase and underscores only)"
                 helperText="Use this username to log in daily."
               />
 
