@@ -61,6 +61,7 @@ function formatDate(dateStr: string): string {
 }
 
 import Link from "next/link";
+import A4ScaleWrapper from "@/components/generators/A4ScaleWrapper";
 
 export default function GeneratorPage() {
   const [form, setForm] = useState<AssignmentFormData>(INITIAL_FORM);
@@ -68,6 +69,7 @@ export default function GeneratorPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [reportContent, setReportContent] = useState<ReportContent | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
   const [templates, setTemplates] = useState<Array<{
     id: string; title: string; no: string; experiment_date: string | null; submission_date: string | null;
     courses: { name: string; code: string | null; teacher_name: string | null; teacher_designation: string | null } | null;
@@ -222,10 +224,26 @@ export default function GeneratorPage() {
 
   return (
     <>
-      <main style={{ display: 'flex', gap: '2rem', padding: '2rem', alignItems: 'flex-start' }}>
-        <section className="preview-panel" style={{ padding: 0 }}>
+      <div className="generator-main-layout">
+        <div className="mobile-generator-tabs">
+          <button
+            className={`mobile-generator-tab ${mobileTab === "form" ? "active" : ""}`}
+            onClick={() => setMobileTab("form")}
+          >
+            ✍️ Edit Details
+          </button>
+          <button
+            className={`mobile-generator-tab ${mobileTab === "preview" ? "active" : ""}`}
+            onClick={() => setMobileTab("preview")}
+          >
+            👁️ Live Preview
+          </button>
+        </div>
+
+        <section className={`generator-preview-section preview-panel ${mobileTab === "form" ? "hidden md:block" : "block"}`} style={{ padding: 0 }}>
           <div className="preview-wrapper" style={{ padding: 0 }}>
-            <div className="a4-page" id="assignmentPreview" ref={previewRef}>
+            <A4ScaleWrapper>
+              <div className="a4-page" id="assignmentPreview" ref={previewRef}>
               {/* University Name */}
               <div className="report-header">
                 <h1 className="university-name">
@@ -363,11 +381,12 @@ export default function GeneratorPage() {
                 </div>
               </div>
             </div>
+          </A4ScaleWrapper>
           </div>
         </section>
 
         {/* Right side form panel */}
-        <aside style={{ flexGrow: 1, minWidth: '300px', maxWidth: '400px', position: 'sticky', top: '2rem' }}>
+        <aside className={`form-aside-panel ${mobileTab === "preview" ? "hidden md:block" : "block"}`}>
           <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 4rem)' }}>
             
             <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #f3f4f6' }}>
@@ -535,7 +554,7 @@ export default function GeneratorPage() {
             </div>
           </div>
         </aside>
-      </main>
+      </div>
     </>
   );
 }

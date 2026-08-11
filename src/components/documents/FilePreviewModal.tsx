@@ -1,16 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
-import InfoIcon from "@mui/icons-material/Info";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 
 import type { Document as DocType } from "@/types/documents";
 import { formatFileSize, getFileIcon } from "@/types/documents";
@@ -27,6 +29,14 @@ export default function FilePreviewModal({
   onClose,
   document,
 }: FilePreviewModalProps) {
+  const isMobile = useMediaQuery("(max-width:768px)");
+  const [viewerMode, setViewerMode] = useState<"auto" | "google" | "native">("auto");
+
+  useEffect(() => {
+    // Reset viewer mode when document changes
+    setViewerMode("auto");
+  }, [document]);
+
   if (!document) return null;
 
   const ext = document.file_name.split(".").pop()?.toLowerCase();
@@ -34,17 +44,33 @@ export default function FilePreviewModal({
   const isImage = ["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "");
   const isOffice = ["docx", "doc", "pptx", "ppt", "xlsx", "xls"].includes(ext || "");
 
+  const getAbsoluteFileUrl = (path: string) => {
+    if (!path) return "";
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}${path}`;
+    }
+    return path;
+  };
+
+  const fileUrl = getAbsoluteFileUrl(document.file_path);
+  const googleViewerUrl = `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(fileUrl)}`;
+  
+  // Decide whether to use Google PDF viewer (Default on mobile for reliable rendering)
+  const useGoogleViewer = isPDF && (viewerMode === "google" || (viewerMode === "auto" && isMobile));
+
   const getOfficeSchemeUrl = () => {
     if (!document) return "";
-    const fileUrl = document.file_path;
     if (ext === "pptx" || ext === "ppt") {
-      return `ms-powerpoint:ofv|u|${fileUrl}`;
+      return `ms-powerpoint:ofv|u|${document.file_path}`;
     }
     if (ext === "docx" || ext === "doc") {
-      return `ms-word:ofv|u|${fileUrl}`;
+      return `ms-word:ofv|u|${document.file_path}`;
     }
     if (ext === "xlsx" || ext === "xls") {
-      return `ms-excel:ofv|u|${fileUrl}`;
+      return `ms-excel:ofv|u|${document.file_path}`;
     }
     return "";
   };
@@ -64,8 +90,11 @@ export default function FilePreviewModal({
       fullWidth
       sx={{
         "& .MuiDialog-paper": {
-          borderRadius: 4,
+          borderRadius: { xs: 3, sm: 4 },
           overflow: "hidden",
+          margin: { xs: 1, sm: 2 },
+          width: { xs: "calc(100% - 16px)", sm: "100%" },
+          maxHeight: { xs: "92vh", sm: "90vh" },
         },
       }}
     >
@@ -73,19 +102,21 @@ export default function FilePreviewModal({
       <DialogTitle
         sx={{
           m: 0,
-          p: 2,
+          p: { xs: 1.5, sm: 2 },
           display: "flex",
-          alignItems: "center",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "flex-start", sm: "center" },
           justifyContent: "space-between",
+          gap: { xs: 1, sm: 0 },
           borderBottom: "1px solid #E2E8F0",
           backgroundColor: "#F8F9FA",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, pr: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, width: "100%" }}>
           <span style={{ fontSize: 24, flexShrink: 0 }}>
             {getFileIcon(document.file_name)}
           </span>
-          <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
             <div
               style={{
                 fontSize: 14,
@@ -103,7 +134,57 @@ export default function FilePreviewModal({
             </div>
           </Box>
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: { xs: "space-between", sm: "flex-end" },
+            width: { xs: "100%", sm: "auto" },
+            gap: 0.8,
+            flexShrink: 0,
+          }}
+        >
+          {isPDF && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Chip
+                icon={<PictureAsPdfIcon sx={{ fontSize: 14 }} />}
+                label={useGoogleViewer ? "Google PDF Viewer" : "Native Viewer"}
+                size="small"
+                color="success"
+                variant={useGoogleViewer ? "filled" : "outlined"}
+                onClick={() => setViewerMode(useGoogleViewer ? "native" : "google")}
+                sx={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  height: 26,
+                  cursor: "pointer",
+                  backgroundColor: useGoogleViewer ? "#006B3F" : "transparent",
+                  borderColor: "#006B3F",
+                  color: useGoogleViewer ? "#fff" : "#006B3F",
+                  "& .MuiChip-icon": {
+                    color: useGoogleViewer ? "#fff" : "#006B3F",
+                  },
+                }}
+              />
+              <IconButton
+                component="a"
+                href={`https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="small"
+                title="Open in Google PDF Viewer Tab"
+                sx={{
+                  color: "#006B3F",
+                  backgroundColor: "rgba(0, 107, 63, 0.05)",
+                  "&:hover": { backgroundColor: "rgba(0, 107, 63, 0.12)" },
+                }}
+              >
+                <OpenInNewIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Box>
+          )}
+
           {isOffice && (
             <Button
               variant="outlined"
@@ -116,9 +197,8 @@ export default function FilePreviewModal({
                 color: "#006B3F",
                 borderColor: "rgba(0, 107, 63, 0.3)",
                 borderRadius: 2,
-                height: 30,
-                px: 1.5,
-                mr: 1,
+                height: 28,
+                px: 1.2,
                 "&:hover": {
                   borderColor: "#006B3F",
                   backgroundColor: "rgba(0, 107, 63, 0.04)",
@@ -128,9 +208,11 @@ export default function FilePreviewModal({
               Open in {getOfficeAppName()}
             </Button>
           )}
+
           <IconButton
             onClick={() => triggerDirectDownload(document.file_path, document.file_name)}
             size="small"
+            title="Download file"
             sx={{
               color: "#006B3F",
               backgroundColor: "rgba(0, 107, 63, 0.05)",
@@ -148,11 +230,17 @@ export default function FilePreviewModal({
       </DialogTitle>
 
       {/* Modal Content */}
-      <DialogContent sx={{ p: 0, backgroundColor: "#FAFBFC", minHeight: isPDF || isImage || isOffice ? 400 : "auto" }}>
+      <DialogContent
+        sx={{
+          p: 0,
+          backgroundColor: "#FAFBFC",
+          minHeight: isPDF || isImage || isOffice ? { xs: 350, sm: 400 } : "auto",
+        }}
+      >
         {isPDF ? (
-          <Box sx={{ width: "100%", height: "70vh", overflow: "hidden" }}>
+          <Box sx={{ width: "100%", height: { xs: "75vh", sm: "70vh" }, overflow: "hidden" }}>
             <iframe
-              src={`${document.file_path}#toolbar=0`}
+              src={useGoogleViewer ? googleViewerUrl : `${document.file_path}#toolbar=0`}
               style={{
                 width: "100%",
                 height: "100%",
@@ -167,9 +255,9 @@ export default function FilePreviewModal({
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              p: 3,
+              p: { xs: 1.5, sm: 3 },
               width: "100%",
-              height: "70vh",
+              height: { xs: "75vh", sm: "70vh" },
               overflow: "auto",
             }}
           >
@@ -186,9 +274,9 @@ export default function FilePreviewModal({
             />
           </Box>
         ) : isOffice ? (
-          <Box sx={{ width: "100%", height: "75vh", overflow: "hidden" }}>
+          <Box sx={{ width: "100%", height: { xs: "75vh", sm: "75vh" }, overflow: "hidden" }}>
             <iframe
-              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(document.file_path)}`}
+              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
               style={{
                 width: "100%",
                 height: "100%",
@@ -205,7 +293,7 @@ export default function FilePreviewModal({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              p: 5,
+              p: { xs: 3, sm: 5 },
               textAlign: "center",
             }}
           >

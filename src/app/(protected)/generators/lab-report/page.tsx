@@ -62,6 +62,7 @@ function formatDate(dateStr: string): string {
 }
 
 import Link from "next/link";
+import A4ScaleWrapper from "@/components/generators/A4ScaleWrapper";
 
 export default function GeneratorPage() {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
@@ -69,6 +70,7 @@ export default function GeneratorPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [reportContent, setReportContent] = useState<ReportContent | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
   const [templates, setTemplates] = useState<Array<{
     id: string; title: string; no: string; experiment_date: string | null; submission_date: string | null;
     courses: { name: string; code: string | null; teacher_name: string | null; teacher_designation: string | null } | null;
@@ -293,156 +295,173 @@ export default function GeneratorPage() {
 
   return (
     <>
-      <main style={{ display: 'flex', gap: '2rem', padding: '2rem', alignItems: 'flex-start' }}>
-        <section className="preview-panel" style={{ padding: 0 }}>
+      <div className="generator-main-layout">
+        <div className="mobile-generator-tabs">
+          <button
+            className={`mobile-generator-tab ${mobileTab === "form" ? "active" : ""}`}
+            onClick={() => setMobileTab("form")}
+          >
+            ✍️ Edit Details
+          </button>
+          <button
+            className={`mobile-generator-tab ${mobileTab === "preview" ? "active" : ""}`}
+            onClick={() => setMobileTab("preview")}
+          >
+            👁️ Live Preview
+          </button>
+        </div>
+
+        <section className={`generator-preview-section preview-panel ${mobileTab === "form" ? "hidden md:block" : "block"}`} style={{ padding: 0 }}>
           <div className="preview-wrapper" style={{ padding: 0 }}>
-            <div className="a4-page" id="reportPreview" ref={previewRef}>
-              {/* University Name */}
-              <div className="report-header">
-                <h1 className="university-name">
-                  Bangladesh Army University of Science and Technology (BAUST),
-                  Saidpur
-                </h1>
-              </div>
-
-              {/* Logo */}
-              <div className="logo-section flex justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/baust-logo.png"
-                  alt="BAUST Logo"
-                  width={110}
-                  height={110}
-                  className="university-logo"
-                />
-              </div>
-
-              {/* Lab Report Title */}
-              <div className="report-title-section">
-                <h2 className="report-type">Lab Report</h2>
-              </div>
-
-              {/* Course Info Table */}
-              <div className="report-course-info">
-                <table className="info-table">
-                  <tbody>
-                    <tr>
-                      <td className="label-cell">
-                        <b><i>Department</i></b>
-                      </td>
-                      <td className="separator-cell"><b>:</b></td>
-                      <td className="value-cell">{form.department}</td>
-                    </tr>
-                    <tr>
-                      <td className="label-cell">
-                        <b><i>Course Title</i></b>
-                      </td>
-                      <td className="separator-cell"><b>:</b></td>
-                      <td className="value-cell">{form.courseTitle}</td>
-                    </tr>
-                    <tr>
-                      <td className="label-cell">
-                        <b><i>Course No</i></b>
-                      </td>
-                      <td className="separator-cell"><b>:</b></td>
-                      <td className="value-cell">{form.courseNo}</td>
-                    </tr>
-                    <tr>
-                      <td className="label-cell">
-                        <b><i>Experiment No</i></b>
-                      </td>
-                      <td className="separator-cell"><b>:</b></td>
-                      <td className="value-cell">{form.experimentNo}</td>
-                    </tr>
-                    <tr>
-                      <td className="label-cell">
-                        <b><i>Experiment Name</i></b>
-                      </td>
-                      <td className="separator-cell"><b>:</b></td>
-                      <td className="value-cell">{form.experimentName}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Comments */}
-              <div className="report-comments">
-                <p className="comments-label">
-                  <b><i>Comments:</i></b>
-                </p>
-                <div className="comments-box" />
-              </div>
-
-              {/* Submitted By / Submitted To */}
-              <div className="report-submission">
-                <div className="submission-label-row">
-                  <span className="submission-label">
-                    <b><i>Submitted By</i></b>
-                  </span>
-                  <span className="submission-label">
-                    <b><i>Submitted To</i></b>
-                  </span>
+            <A4ScaleWrapper>
+              <div className="a4-page" id="reportPreview" ref={previewRef}>
+                {/* University Name */}
+                <div className="report-header">
+                  <h1 className="university-name">
+                    Bangladesh Army University of Science and Technology (BAUST),
+                    Saidpur
+                  </h1>
                 </div>
-                <div className="submission-boxes">
-                  {/* Submitted By Box */}
-                  <div className="submission-box">
-                    <p>
-                      <b><i>Name:</i></b> {form.studentName}
-                    </p>
-                    <p>
-                      <b><i>Id:</i></b> {form.studentId}
-                    </p>
-                    <p className="level-term-line">
-                      <span>
-                        <b><i>Level:</i></b> {form.level}
-                      </span>
-                      <span>
-                        <b><i>Term:</i></b> {form.term}
-                      </span>
-                    </p>
-                    <p>
-                      <b><i>Date of Experiment:</i></b>{" "}
-                      {formatDate(form.experimentDate)}
-                    </p>
-                    <p>
-                      <b><i>Date of submission:</i></b>{" "}
-                      {formatDate(form.submissionDate)}
-                    </p>
-                  </div>
 
-                  {/* Submitted To Box */}
-                  <div className="submission-box submitted-to-box">
-                    <div className="teachers-container">
-                      {form.teachers.map((teacher, i) => (
-                        <div key={i}>
-                          <div className="teacher-preview-entry">
-                            <p>
-                              <b><i>Name of the Teacher:</i></b>
-                            </p>
-                            <p className="teacher-value">{teacher.name}</p>
-                            <p>
-                              <b><i>Designation:</i></b>
-                            </p>
-                            <p className="teacher-value">
-                              {teacher.designation}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                {/* Logo */}
+                <div className="logo-section flex justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/baust-logo.png"
+                    alt="BAUST Logo"
+                    width={110}
+                    height={110}
+                    className="university-logo"
+                  />
+                </div>
+
+                {/* Lab Report Title */}
+                <div className="report-title-section">
+                  <h2 className="report-type">Lab Report</h2>
+                </div>
+
+                {/* Course Info Table */}
+                <div className="report-course-info">
+                  <table className="info-table">
+                    <tbody>
+                      <tr>
+                        <td className="label-cell">
+                          <b><i>Department</i></b>
+                        </td>
+                        <td className="separator-cell"><b>:</b></td>
+                        <td className="value-cell">{form.department}</td>
+                      </tr>
+                      <tr>
+                        <td className="label-cell">
+                          <b><i>Course Title</i></b>
+                        </td>
+                        <td className="separator-cell"><b>:</b></td>
+                        <td className="value-cell">{form.courseTitle}</td>
+                      </tr>
+                      <tr>
+                        <td className="label-cell">
+                          <b><i>Course No</i></b>
+                        </td>
+                        <td className="separator-cell"><b>:</b></td>
+                        <td className="value-cell">{form.courseNo}</td>
+                      </tr>
+                      <tr>
+                        <td className="label-cell">
+                          <b><i>Experiment No</i></b>
+                        </td>
+                        <td className="separator-cell"><b>:</b></td>
+                        <td className="value-cell">{form.experimentNo}</td>
+                      </tr>
+                      <tr>
+                        <td className="label-cell">
+                          <b><i>Experiment Name</i></b>
+                        </td>
+                        <td className="separator-cell"><b>:</b></td>
+                        <td className="value-cell">{form.experimentName}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Comments */}
+                <div className="report-comments">
+                  <p className="comments-label">
+                    <b><i>Comments:</i></b>
+                  </p>
+                  <div className="comments-box" />
+                </div>
+
+                {/* Submitted By / Submitted To */}
+                <div className="report-submission">
+                  <div className="submission-label-row">
+                    <span className="submission-label">
+                      <b><i>Submitted By</i></b>
+                    </span>
+                    <span className="submission-label">
+                      <b><i>Submitted To</i></b>
+                    </span>
+                  </div>
+                  <div className="submission-boxes">
+                    {/* Submitted By Box */}
+                    <div className="submission-box">
+                      <p>
+                        <b><i>Name:</i></b> {form.studentName}
+                      </p>
+                      <p>
+                        <b><i>Id:</i></b> {form.studentId}
+                      </p>
+                      <p className="level-term-line">
+                        <span>
+                          <b><i>Level:</i></b> {form.level}
+                        </span>
+                        <span>
+                          <b><i>Term:</i></b> {form.term}
+                        </span>
+                      </p>
+                      <p>
+                        <b><i>Date of Experiment:</i></b>{" "}
+                        {formatDate(form.experimentDate)}
+                      </p>
+                      <p>
+                        <b><i>Date of submission:</i></b>{" "}
+                        {formatDate(form.submissionDate)}
+                      </p>
                     </div>
-                    <p className="signature-line">
-                      <b><i>Signature:</i></b>{" "}
-                      .............................................
-                    </p>
+
+                    {/* Submitted To Box */}
+                    <div className="submission-box submitted-to-box">
+                      <div className="teachers-container">
+                        {form.teachers.map((teacher, i) => (
+                          <div key={i}>
+                            <div className="teacher-preview-entry">
+                              <p>
+                                <b><i>Name of the Teacher:</i></b>
+                              </p>
+                              <p className="teacher-value">{teacher.name}</p>
+                              <p>
+                                <b><i>Designation:</i></b>
+                              </p>
+                              <p className="teacher-value">
+                                {teacher.designation}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="signature-line">
+                        <b><i>Signature:</i></b>{" "}
+                        .............................................
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </A4ScaleWrapper>
           </div>
         </section>
 
         {/* Right side form panel */}
-        <aside style={{ flexGrow: 1, minWidth: '300px', maxWidth: '400px', position: 'sticky', top: '2rem' }}>
+        <aside className={`form-aside-panel ${mobileTab === "preview" ? "hidden md:block" : "block"}`}>
           <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 4rem)' }}>
             
             <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #f3f4f6' }}>
@@ -657,7 +676,7 @@ export default function GeneratorPage() {
             </div>
           </div>
         </aside>
-      </main>
+      </div>
     </>
   );
 }

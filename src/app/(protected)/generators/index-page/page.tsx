@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import type { IndexFormData, ExperimentEntry, TeacherEntry } from "./download";
 import { createClient } from "@/lib/supabase/client";
+import A4ScaleWrapper from "@/components/generators/A4ScaleWrapper";
 
 const TEACHER_PRESETS = [
   { name: "Md Atiq Shariar", designation: "Lecturer, EEE (Baust)" },
@@ -44,6 +45,7 @@ export default function IndexGeneratorPage() {
   const [form, setForm] = useState<IndexFormData>(INITIAL_FORM);
   const [loading, setLoading] = useState({ pdf: false, png: false, docx: false });
   const previewRef = useRef<HTMLDivElement>(null);
+  const [mobileTab, setMobileTab] = useState<"form" | "preview">("form");
 
   // Auto-fill from student profile
   useEffect(() => {
@@ -166,121 +168,138 @@ export default function IndexGeneratorPage() {
 
   return (
     <>
-      <main style={{ display: 'flex', gap: '2rem', padding: '2rem', alignItems: 'flex-start' }}>
-        <section className="preview-panel" style={{ padding: 0 }}>
+      <div className="generator-main-layout">
+        <div className="mobile-generator-tabs">
+          <button
+            className={`mobile-generator-tab ${mobileTab === "form" ? "active" : ""}`}
+            onClick={() => setMobileTab("form")}
+          >
+            ✍️ Edit Details
+          </button>
+          <button
+            className={`mobile-generator-tab ${mobileTab === "preview" ? "active" : ""}`}
+            onClick={() => setMobileTab("preview")}
+          >
+            👁️ Live Preview
+          </button>
+        </div>
+
+        <section className={`generator-preview-section preview-panel ${mobileTab === "form" ? "hidden md:block" : "block"}`} style={{ padding: 0 }}>
           <div className="preview-wrapper" style={{ padding: 0 }}>
-            <div className="a4-page index-page" id="reportPreview" ref={previewRef}>
-              
-              <div className="index-watermark">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/baust-logo.png" alt="Watermark" />
-              </div>
+            <A4ScaleWrapper>
+              <div className="a4-page index-page" id="reportPreview" ref={previewRef}>
+                
+                <div className="index-watermark">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/baust-logo.png" alt="Watermark" />
+                </div>
 
-              {/* Logo */}
-              <div className="logo-section flex justify-center" style={{ marginBottom: '5px' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/baust-logo.png"
-                  alt="BAUST Logo"
-                  width={80}
-                  height={80}
-                  className="university-logo"
-                />
-              </div>
-              
-              {/* University Name */}
-              <div className="report-header" style={{ marginBottom: '10px' }}>
-                <h1 className="university-name" style={{ fontSize: '20px', fontWeight: 'normal', fontFamily: 'Times New Roman' }}>
-                  Bangladesh Army University of Science<br/>and Technology (baust), Saidpur
-                </h1>
-              </div>
+                {/* Logo */}
+                <div className="logo-section flex justify-center" style={{ marginBottom: '5px' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/baust-logo.png"
+                    alt="BAUST Logo"
+                    width={80}
+                    height={80}
+                    className="university-logo"
+                  />
+                </div>
+                
+                {/* University Name */}
+                <div className="report-header" style={{ marginBottom: '10px' }}>
+                  <h1 className="university-name" style={{ fontSize: '20px', fontWeight: 'normal', fontFamily: 'Times New Roman' }}>
+                    Bangladesh Army University of Science<br/>and Technology (baust), Saidpur
+                  </h1>
+                </div>
 
-              {/* Lab Report Index Title */}
-              <div className="report-title-section" style={{ marginBottom: '10px' }}>
-                <h2 className="report-type" style={{ fontSize: '16px', fontWeight: 'normal' }}>Lab Report Index</h2>
-              </div>
+                {/* Lab Report Index Title */}
+                <div className="report-title-section" style={{ marginBottom: '10px' }}>
+                  <h2 className="report-type" style={{ fontSize: '16px', fontWeight: 'normal' }}>Lab Report Index</h2>
+                </div>
 
-              {/* Index Table */}
-              <div className="index-table-container">
-                <table className="index-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '12%' }}>Experiment<br/>no.</th>
-                      <th style={{ width: '43%' }}>Experiment name</th>
-                      <th style={{ width: '15%' }}>Experiment<br/>date</th>
-                      <th style={{ width: '15%' }}>Submission<br/>date</th>
-                      <th style={{ width: '15%' }}>Mark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {form.experiments.map((exp, i) => (
-                      <tr key={i}>
-                        <td style={{ textAlign: 'center' }}>{exp.no}</td>
-                        <td style={{ textAlign: 'center' }}>{exp.name}</td>
-                        <td style={{ textAlign: 'center' }}>{formatDate(exp.experimentDate)}</td>
-                        <td style={{ textAlign: 'center' }}>{formatDate(exp.submissionDate)}</td>
-                        <td>{exp.mark}</td>
+                {/* Index Table */}
+                <div className="index-table-container">
+                  <table className="index-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '12%' }}>Experiment<br/>no.</th>
+                        <th style={{ width: '43%' }}>Experiment name</th>
+                        <th style={{ width: '15%' }}>Experiment<br/>date</th>
+                        <th style={{ width: '15%' }}>Submission<br/>date</th>
+                        <th style={{ width: '15%' }}>Mark</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Submitted By / Submitted To */}
-              <div className="report-submission index-submission">
-                <div className="submission-label-row">
-                  <span className="submission-label" style={{ textAlign: 'left', paddingLeft: '50px' }}>
-                    <span style={{ fontSize: '18px' }}>Submitted By:</span>
-                  </span>
-                  <span className="submission-label" style={{ textAlign: 'left', paddingLeft: '50px' }}>
-                    <span style={{ fontSize: '18px' }}>Submitted To:</span>
-                  </span>
-                </div>
-                <div className="submission-boxes">
-                  {/* Submitted By Box */}
-                  <div className="submission-box">
-                    <p>
-                      <b>Name:</b> {form.studentName}
-                    </p>
-                    <p>
-                      <b>Roll:</b> {form.studentId}
-                    </p>
-                    <p>
-                      <b>Level:</b> {form.level}, <b>Term:</b> {form.term}, <b>Section:</b> {form.section}
-                    </p>
-                    <p>
-                      <b>Date of Submission:</b> {formatDate(form.dateOfSubmission)}
-                    </p>
-                  </div>
-
-                  {/* Submitted To Box */}
-                  <div className="submission-box submitted-to-box">
-                    <div className="teachers-container">
-                      {form.teachers.map((teacher, i) => (
-                        <div key={i} className="teacher-preview-entry">
-                          <p>
-                            <b>Name of Teacher:</b><br/>
-                            <span style={{ display: 'inline-block', marginLeft: '15px' }}>• {teacher.name}</span>
-                          </p>
-                          <p>
-                            <b>Designation:</b><br/>
-                            <span style={{ display: 'inline-block', marginLeft: '15px' }}>• {teacher.designation}</span>
-                          </p>
-                        </div>
+                    </thead>
+                    <tbody>
+                      {form.experiments.map((exp, i) => (
+                        <tr key={i}>
+                          <td style={{ textAlign: 'center' }}>{exp.no}</td>
+                          <td style={{ textAlign: 'center' }}>{exp.name}</td>
+                          <td style={{ textAlign: 'center' }}>{formatDate(exp.experimentDate)}</td>
+                          <td style={{ textAlign: 'center' }}>{formatDate(exp.submissionDate)}</td>
+                          <td>{exp.mark}</td>
+                        </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Submitted By / Submitted To */}
+                <div className="report-submission index-submission">
+                  <div className="submission-label-row">
+                    <span className="submission-label" style={{ textAlign: 'left', paddingLeft: '50px' }}>
+                      <span style={{ fontSize: '18px' }}>Submitted By:</span>
+                    </span>
+                    <span className="submission-label" style={{ textAlign: 'left', paddingLeft: '50px' }}>
+                      <span style={{ fontSize: '18px' }}>Submitted To:</span>
+                    </span>
+                  </div>
+                  <div className="submission-boxes">
+                    {/* Submitted By Box */}
+                    <div className="submission-box">
+                      <p>
+                        <b>Name:</b> {form.studentName}
+                      </p>
+                      <p>
+                        <b>Roll:</b> {form.studentId}
+                      </p>
+                      <p>
+                        <b>Level:</b> {form.level}, <b>Term:</b> {form.term}, <b>Section:</b> {form.section}
+                      </p>
+                      <p>
+                        <b>Date of Submission:</b> {formatDate(form.dateOfSubmission)}
+                      </p>
                     </div>
-                    <p className="signature-line" style={{ marginTop: '10px', fontWeight: 'bold' }}>
-                      Signature:...............................................
-                    </p>
+
+                    {/* Submitted To Box */}
+                    <div className="submission-box submitted-to-box">
+                      <div className="teachers-container">
+                        {form.teachers.map((teacher, i) => (
+                          <div key={i} className="teacher-preview-entry">
+                            <p>
+                              <b>Name of Teacher:</b><br/>
+                              <span style={{ display: 'inline-block', marginLeft: '15px' }}>• {teacher.name}</span>
+                            </p>
+                            <p>
+                              <b>Designation:</b><br/>
+                              <span style={{ display: 'inline-block', marginLeft: '15px' }}>• {teacher.designation}</span>
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="signature-line" style={{ marginTop: '10px', fontWeight: 'bold' }}>
+                        Signature:...............................................
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </A4ScaleWrapper>
           </div>
         </section>
 
         {/* Right side form panel */}
-        <aside style={{ flexGrow: 1, minWidth: '300px', maxWidth: '400px', position: 'sticky', top: '2rem' }}>
+        <aside className={`form-aside-panel ${mobileTab === "preview" ? "hidden md:block" : "block"}`}>
           <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 4rem)' }}>
             
             <div style={{ padding: '1.5rem 1.5rem 1rem 1.5rem', borderBottom: '1px solid #f3f4f6' }}>
@@ -406,7 +425,7 @@ export default function IndexGeneratorPage() {
             </div>
           </div>
         </aside>
-      </main>
+      </div>
     </>
   );
 }
